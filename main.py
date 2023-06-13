@@ -3,12 +3,12 @@ import random
 import math
 from time import sleep
 import pygame
-from circleLib import drawRainbowCircle, init
+from circleLib import RainbowCircle
 
 WINDOW_SIZE = (1000, 600)
 BACKGROUND_COLOR = 0x000000
 CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
-MAX_RADIUS = math.floor(max(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
+MAX_RADIUS = math.floor(min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
 
 def genRandColor():
     return random.randrange(0x000000, 0xffffff)
@@ -35,8 +35,8 @@ def clearBackground(window):
 
 if __name__ == '__main__':
     pygame.init()
-    init(WINDOW_SIZE, CENTER, MAX_RADIUS)
-    main_window = pygame.display.set_mode(WINDOW_SIZE)
+    main_window = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
+    rainbowCircle = RainbowCircle(WINDOW_SIZE, CENTER, MAX_RADIUS)
     #set window title
     pygame.display.set_caption("Nearest Neighbour Simulator")
     clearBackground(main_window)
@@ -54,12 +54,17 @@ if __name__ == '__main__':
                 pygame.quit()
                 shouldExit = True
                 break
+            elif event.type == pygame.VIDEORESIZE:
+                WINDOW_SIZE = main_window.get_size()
+                CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
+                MAX_RADIUS = math.floor(min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
+                rainbowCircle = RainbowCircle(WINDOW_SIZE, CENTER, MAX_RADIUS)
+                clearBackground(main_window)
+                updated = True
+                break
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F12:
                     randSquares = not randSquares
-                elif event.key == pygame.K_F11:
-                    drawRainbowCircle(main_window)
-                    updated = True
                 elif event.key == pygame.K_c:
                     clearBackground(main_window)
                     updated = True
@@ -69,6 +74,7 @@ if __name__ == '__main__':
                     break
 
         if (not shouldExit) and updated:
+            rainbowCircle.drawRainbowCircle(main_window)
             pygame.display.flip()
         else:
             sleep(.1)

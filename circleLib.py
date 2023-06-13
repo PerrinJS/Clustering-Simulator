@@ -1,20 +1,7 @@
 #!/usr/bin/python
 import math
 import colorsys
-
-WINDOW_SIZE = [0, 0]
-CENTER = [0,0]
-MAX_RADIUS = [0]
-
-#TODO: this is a temp fix
-def init(window_size, center, max_radius):
-    WINDOW_SIZE[0] = window_size[0]
-    WINDOW_SIZE[1] = window_size[1]
-
-    CENTER[0] = center[0]
-    CENTER[1] = center[1]
-
-    MAX_RADIUS[0] = max_radius
+import pygame
 
 def convertToPygameColor(color):
     red = 255 * color[0]
@@ -28,8 +15,8 @@ def convertFromPygameColor(color):
     blue = color[2]/255
     return (red, green, blue)
 
-def sampleHexColor(h, s, v = 100):
-    sx = abs(s/MAX_RADIUS[0])
+def sampleHexColor(max_radius, h, s, v = 100):
+    sx = abs(s/max_radius)
     color = colorsys.hsv_to_rgb(h/(2*math.pi), sx, v/100)
     return convertToPygameColor(color)
 
@@ -74,56 +61,88 @@ def getLocationFromPix(imageSize, location):
     x = location%xLen
     return (x,y)
 
-def drawRainbowCircle(window):
-    for i in range(0,(WINDOW_SIZE[0]*WINDOW_SIZE[1])):
-        pos = getLocationFromPix(WINDOW_SIZE, i)
-        if pointInCircle(CENTER, min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2, pos):
-            polarPos = posToPolar(pos, CENTER)
-            window.set_at(pos, sampleHexColor(polarPos[1], polarPos[0]))
-        #else:
-        #    window.set_at(pos, 0x0)
+#TODO: the purpose of drawing it into a buffer so we dont have to re-calc every time
+class RainbowCircle:
+    def __init__(self, window_size, center, max_radius):
+        self.WINDOW_SIZE = []
+        self.WINDOW_SIZE.append(window_size[0])
+        self.WINDOW_SIZE.append(window_size[1])
+
+        self.CENTER = []
+        self.CENTER.append(center[0])
+        self.CENTER.append(center[1])
+
+        self.MAX_RADIUS = max_radius
+
+        self.BUFF_WIDTH = min(self.WINDOW_SIZE[0], self.WINDOW_SIZE[1])
+        self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
+        self.blankCircle.fill(0x00)
+        self.renderRainbowCircle()
+
+    def renderRainbowCircle(self):
+        for i in range(0,(self.BUFF_WIDTH**2)):
+            pos = getLocationFromPix((self.BUFF_WIDTH, self.BUFF_WIDTH), i)
+            if pointInCircle((self.BUFF_WIDTH/2, self.BUFF_WIDTH/2), self.BUFF_WIDTH/2, pos):
+                polarPos = posToPolar(pos, (self.BUFF_WIDTH/2, self.BUFF_WIDTH/2))
+                self.blankCircle.set_at(pos, sampleHexColor(self.MAX_RADIUS, polarPos[1], polarPos[0]))
+
+    def drawRainbowCircle(self, window):
+        window.blit(self.blankCircle, (self.CENTER[0]-self.BUFF_WIDTH/2,
+                                       self.CENTER[1]-self.BUFF_WIDTH/2))
+
+
+
 
 
 #####################TEST FUNCTIONS AND RUNTIME#######################
 
+#NOTE: thease tests where simply being used as a troubleshooting tool and as
+#such I have no intention of adding new tests. However I will try keep thease
+#working and useful
 if __name__ == '__main__':
     import sys
+    from functools import partial
 
     def baseTest(func, inp, expOut):
         """Note this test can only be used where the == comparator is valid"""
-        if (func(*inp) == expOut):
-            print(f'PASS {func} with input of {inp}')
-        else:
-            print(f'ERROR: {func} had value of {func(*inp)}', file=sys.stderr)
-            print("EXITING EARLY", file=sys.stderr)
-            sys.exit()
+        assert func(*inp) == expOut, f'ERROR: {func.__name__} with input {inp} had value of {func(*inp)} expected: {expOut}'
+        print(f'PASS {func.__name__} input was: {inp} and output: {expOut}')
 
     def testColorConversion():
         print("TESTING COLOR CONVERSIONS:")
         #Testing convertToPygameColor
-        baseTest(func = convertToPygameColor, inp = [(1,1,1)], expOut = (255,255,255))
-        baseTest(func = convertToPygameColor, inp = [(0,0,0)], expOut = (0,0,0))
-        baseTest(func = convertToPygameColor, inp = [(0.5,0.5,0.5)], expOut = (255/2,255/2,255/2))
+        toPyColorTest = partial(baseTest, func=convertToPygameColor)
+        toPyColorTest(inp = [(1,1,1)], expOut = (255,255,255))
+        toPyColorTest(inp = [(0,0,0)], expOut = (0,0,0))
+        toPyColorTest(inp = [(0.5,0.5,0.5)], expOut = (255/2,255/2,255/2))
         #to test the order
-        baseTest(func = convertToPygameColor, inp = [(1,0,0.5)], expOut = (255,0,255/2))
+        toPyColorTest(inp = [(1,0,0.5)], expOut = (255,0,255/2))
 
         #Testing convertFromPygameColor
-        baseTest(func = convertFromPygameColor, inp = [(0,0,0)], expOut = (0,0,0))
-        baseTest(func = convertFromPygameColor, inp = [(255,255,255)], expOut = (1.0,1.0,1.0))
-        baseTest(func = convertFromPygameColor, inp = [(255/2,255/2,255/2)], expOut = (0.5,0.5,0.5))
+        fromPyColorTest = partial(baseTest, func=convertFromPygameColor)
+        fromPyColorTest(inp = [(0,0,0)], expOut = (0,0,0))
+        fromPyColorTest(inp = [(255,255,255)], expOut = (1.0,1.0,1.0))
+        fromPyColorTest(inp = [(255/2,255/2,255/2)], expOut = (0.5,0.5,0.5))
         #to test the order
-        baseTest(func = convertFromPygameColor, inp = [(255,0,255/2)], expOut = (1,0,0.5))
+        fromPyColorTest(inp = [(255,0,255/2)], expOut = (1,0,0.5))
 
     def testWindowMathFunctions():
         print("TESTING WINDOW MATH FUNCTIONS:")
         #Testing normalizePoint
-        baseTest(func = normalizePoint, inp = [(0,0),(0,0)], expOut = (0,0))
-        baseTest(func = normalizePoint, inp = [(800,600),(0,0)], expOut = (800,600))
-        baseTest(func = normalizePoint, inp = [(1600,1200),(800,600)], expOut = (800,600))
+        normalizePointTest = partial(baseTest, func=normalizePoint)
+        normalizePointTest(inp = [(0,0),(0,0)], expOut = (0,0))
+        normalizePointTest(inp = [(800,600),(0,0)], expOut = (800,600))
+        normalizePointTest(inp = [(1600,1200),(800,600)], expOut = (800,600))
         #Testing posToPolar
-        baseTest(func = posToPolar, inp = [(0,0)], expOut = (0,0))
-        baseTest(func = posToPolar, inp = [(12, 5)], expOut = (13, math.atan(5/12)))
+        posToPolarTest = partial(baseTest, func=posToPolar)
+        posToPolarTest(inp = [(0,0), (0,0)], expOut = (0,0))
+        posToPolarTest(inp = [(12, 5), (0,0)], expOut = (13, math.atan(5/12)))
 
-    print("Running Circle Lib Diag & Test")
-    testColorConversion()
-    testWindowMathFunctions()
+    print("Running Circle Lib Diag & Test:")
+    try:
+        testColorConversion()
+        testWindowMathFunctions()
+    except AssertionError as error:
+        print(error)
+        print("EXITING EARLY", file=sys.stderr)
+    print("FINISHED")
