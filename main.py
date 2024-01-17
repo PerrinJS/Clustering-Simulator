@@ -33,6 +33,14 @@ def clearBackground(window):
     main_window.fill(BACKGROUND_COLOR)
     pygame.display.flip()
 
+def resize():
+    WINDOW_SIZE = main_window.get_size()
+    CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
+    MAX_RADIUS = math.floor(min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
+    rainbowCircle = RainbowCircle(WINDOW_SIZE, CENTER, MAX_RADIUS)
+    clearBackground(main_window)
+    return (rainbowCircle)
+
 if __name__ == '__main__':
     pygame.init()
     main_window = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
@@ -44,8 +52,11 @@ if __name__ == '__main__':
     #main loop
     shouldExit = False
     randSquares = False
+
+    #This is so we can initially draw the circle to the correct size
+    resize()
+    updated = True
     while shouldExit is False:
-        updated = False
         if randSquares:
             drawRandSquare(main_window)
             updated = True
@@ -55,11 +66,7 @@ if __name__ == '__main__':
                 shouldExit = True
                 break
             elif event.type == pygame.VIDEORESIZE:
-                WINDOW_SIZE = main_window.get_size()
-                CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
-                MAX_RADIUS = math.floor(min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
-                rainbowCircle = RainbowCircle(WINDOW_SIZE, CENTER, MAX_RADIUS)
-                clearBackground(main_window)
+                rainbowCircle = resize()
                 updated = True
                 break
             elif event.type == pygame.KEYDOWN:
@@ -78,3 +85,5 @@ if __name__ == '__main__':
             pygame.display.flip()
         else:
             sleep(.1)
+
+        updated = False

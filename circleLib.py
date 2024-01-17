@@ -143,6 +143,6 @@ if __name__ == '__main__':
         testColorConversion()
         testWindowMathFunctions()
     except AssertionError as error:
-        print(error)
+        print(error, file=sys.stderr)
         print("EXITING EARLY", file=sys.stderr)
     print("FINISHED")
