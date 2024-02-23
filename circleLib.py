@@ -62,6 +62,7 @@ def getLocationFromPix(imageSize, location):
     return (x,y)
 
 #TODO: the purpose of drawing it into a buffer so we dont have to re-calc every time
+#       Maybe on init accept a start buffer size so we always scale down.
 class RainbowCircle:
     def __init__(self, window_size, center, max_radius):
         self.WINDOW_SIZE = []
@@ -75,9 +76,34 @@ class RainbowCircle:
         self.MAX_RADIUS = max_radius
 
         self.BUFF_WIDTH = min(self.WINDOW_SIZE[0], self.WINDOW_SIZE[1])
+        self.DEFF_BUFF_WIDTH = self.BUFF_WIDTH
         self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
         self.blankCircle.fill(0x00)
         self.renderRainbowCircle()
+        self.scaleBuff = False
+
+    def updateDimens(self, window_size, center, max_radius):
+        self.WINDOW_SIZE = []
+        self.WINDOW_SIZE.append(window_size[0])
+        self.WINDOW_SIZE.append(window_size[1])
+
+        self.CENTER = []
+        self.CENTER.append(center[0])
+        self.CENTER.append(center[1])
+
+        self.MAX_RADIUS = max_radius
+
+        potential_buff_width = min(self.WINDOW_SIZE[0], self.WINDOW_SIZE[1])
+        if self.BUFF_WIDTH <= potential_buff_width:
+            self.BUFF_WIDTH = potential_buff_width
+            self.DEFF_BUFF_WIDTH = self.BUFF_WIDTH
+            self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
+            self.blankCircle.fill(0x00)
+            self.renderRainbowCircle()
+            self.scaleBuff = False
+        else:
+            self.DEFF_BUFF_WIDTH = potential_buff_width
+            self.scaleBuff = True
 
     def renderRainbowCircle(self):
         for i in range(0,(self.BUFF_WIDTH**2)):
@@ -87,8 +113,13 @@ class RainbowCircle:
                 self.blankCircle.set_at(pos, sampleHexColor(self.MAX_RADIUS, polarPos[1], polarPos[0]))
 
     def drawRainbowCircle(self, window):
-        window.blit(self.blankCircle, (self.CENTER[0]-self.BUFF_WIDTH/2,
-                                       self.CENTER[1]-self.BUFF_WIDTH/2))
+        if self.DEFF_BUFF_WIDTH <= self.BUFF_WIDTH:
+            outputCircle = pygame.transform.scale(self.blankCircle, (self.DEFF_BUFF_WIDTH,self.DEFF_BUFF_WIDTH))
+        else:
+            outputCircle = self.blankCircle
+        window.blit(outputCircle, (self.CENTER[0]-self.DEFF_BUFF_WIDTH/2,
+                                       self.CENTER[1]-self.DEFF_BUFF_WIDTH/2))
+
 
 
 
