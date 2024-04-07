@@ -1,10 +1,7 @@
 #!/usr/bin/python
+import pygame
 
-#NOTE: this issue we are having is that relative sizing does not work because
-#numbers less then zero are being rounded when the buttons rect is created.
-
-
-class button:
+class Button:
     #TODO: implement relative sizing such that when the screen is scalled the buttons are scaled to match
     def __init__(self, surface, shape_pos=(0,0,0,0), relative_size=False, label="", fit_text=True, colors=((0,255,0), (55,69,84), (00,00,00))):
         #TODO: add color maybe
@@ -132,7 +129,6 @@ if __name__ == '__main__':
     import random
     import math
     from time import sleep
-    import pygame
 
     WINDOW_SIZE = (1000, 600)
     BACKGROUND_COLOR = 0x000000
@@ -161,10 +157,15 @@ if __name__ == '__main__':
     shouldExit = False
     resize()
     updated = True
-    butt = button(main_window, (5,5,250,100), False, "Button")
-    butt2 = button(main_window, (.72,.01,.275,.18), True, "Button two")
-    butt3 = button(main_window, (.01,.81,.275,.18), True, "Button 3")
-    butt4 = button(main_window, (.72,.81,.275,.18), True, "Button 4")
+    buff_size = 0.008
+
+    #NOTE: with relative sizeing if the width of the window is greater then the
+    #height then spacing will be larger allong the width then height for the
+    #same percentage
+    butt = Button(main_window, (5,5,250,100), False, "Button")
+    butt2 = Button(main_window, (1-.275-buff_size,buff_size,.275,.18), True, "Button two")
+    butt3 = Button(main_window, (buff_size,1-.18-buff_size,.275,.18), True, "Button 3")
+    butt4 = Button(main_window, (1-.275-buff_size,1-.18-buff_size,.275,.18), True, "Button 4")
 
     butt.set_func(lambda : print('hello 1 ' + str(id(butt))))
     butt2.set_func(lambda : print('hello 2 ' + str(id(butt2))))
@@ -192,11 +193,6 @@ if __name__ == '__main__':
                     pygame.quit()
                     shouldExit = True
                     break
-                elif event.key == pygame.K_F11:
-                    butt2.set_size((500, 250))
-                    #FIXME: this is just for testing
-                    clearBackground(main_window)
-                    updated = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 for element in screen_elements:
                     element.on_mouse_down()

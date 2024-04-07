@@ -20,6 +20,13 @@ def sampleHexColor(max_radius, h, s, v = 100):
     color = colorsys.hsv_to_rgb(h/(2*math.pi), sx, v/100)
     return convertToPygameColor(color)
 
+def samplePointFromRGB(rgb_color, max_radius):
+    r,g,b = rgb_color
+    h,s,v = colorsys.rgb_to_hsv(r,g,b)
+    h = h*(2*math.pi)
+    s = s*max_radius
+    return polarToPos((s, h))
+
 def normalizePoint(point, center):
     """
     Make the corrdinate system based off where the center of the window rather
@@ -28,6 +35,12 @@ def normalizePoint(point, center):
     (x,y) = point
     (cX,cY) = center
     return (x-cX, y-cY)
+
+def toRealScreenPos(point, center):
+    """ Reverse normalizePoint """
+    x, y = point
+    cX, cY = center
+    return (x+cX, y+cY)
 
 def posToPolar(point, center):
     """converts cartesian coordinates to polar coordinates using the center as refference"""
@@ -48,6 +61,11 @@ def posToPolar(point, center):
             theta += 2*math.pi
 
     return(r,theta)
+
+def polarToPos(polar):
+    x = polar[0] * math.cos(polar[1])
+    y = polar[0] * math.sin(polar[1])
+    return (x, y)
 
 def pointInCircle(center, radius, point):
     polarPoint = posToPolar(point, center)
@@ -112,7 +130,7 @@ class RainbowCircle:
                 polarPos = posToPolar(pos, (self.BUFF_WIDTH/2, self.BUFF_WIDTH/2))
                 self.blankCircle.set_at(pos, sampleHexColor(self.MAX_RADIUS, polarPos[1], polarPos[0]))
 
-    def drawRainbowCircle(self, window):
+    def draw(self, window):
         if self.DEFF_BUFF_WIDTH <= self.BUFF_WIDTH:
             outputCircle = pygame.transform.scale(self.blankCircle, (self.DEFF_BUFF_WIDTH,self.DEFF_BUFF_WIDTH))
         else:
