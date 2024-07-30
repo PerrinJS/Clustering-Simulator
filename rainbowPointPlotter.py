@@ -1,7 +1,7 @@
 #TODO: this will be a library that holds a rainbow circle and after blitting to what we want to draw to will then overlay its colored points in its own surface over the top
 import pygame
 from circleLib import RainbowCircle
-import circleLib as cirLib
+import ColorAndPositionConversion as CAPConv
 
 class RainbowPointPlotter:
     def __init__(self, rainbow_circle = None, window_size = None, center = None, max_radius = None):
@@ -29,8 +29,8 @@ class RainbowPointPlotter:
     def drawColor(self, color, circle, surface):
         center = (int(circle.DEFF_BUFF_WIDTH/2), int(circle.DEFF_BUFF_WIDTH/2))
 
-        sample_pos_center_ref = cirLib.samplePointFromRGB(cirLib.convertFromPygameColor(color), circle.MAX_RADIUS)
-        sample_pos = cirLib.toRealScreenPos(sample_pos_center_ref, center)
+        sample_pos_center_ref = CAPConv.samplePointFromRGB(CAPConv.convertFromPygameColor(color), circle.MAX_RADIUS)
+        sample_pos = CAPConv.toRealScreenPos(sample_pos_center_ref, center)
         self.drawColorAtPos(color, sample_pos, circle, surface)
 
     def drawColorAtPos(self, color, pos, circle, surface, dot_diamiter = 0):
@@ -40,7 +40,7 @@ class RainbowPointPlotter:
         pygame.draw.circle(surface, 0xff000000,\
                            pos,\
                            dot_diamiter+1)
-        pygame.draw.circle(surface, cirLib.convertToPygameColor(color),\
+        pygame.draw.circle(surface, CAPConv.convertToPygameColor(color),\
                            pos,\
                            dot_diamiter)
 

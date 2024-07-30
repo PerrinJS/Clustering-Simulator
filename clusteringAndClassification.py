@@ -2,7 +2,7 @@
 import random
 import math
 
-import circleLib
+import ColorAndPositionConversion as CAPConv
 
 def _argmin(inList):
     currMinPair = (None, None)
@@ -116,7 +116,7 @@ class KMeansClusterer:
         clusters = [[] for _ in range(self.numNeighbours)]
         centroidsPos = list()
         euclidianCentroids = list()
-        euclidianPoints = [circleLib.polarToPos(point) for point in self.data]
+        euclidianPoints = [CAPConv.polarToPos(point) for point in self.data]
         #Randomly select unique points to use as centroids
         for _ in range(self.numNeighbours):
             centroidsPosTmp = random.randrange(0, len(self.data))
@@ -162,7 +162,7 @@ class KMeansClusterer:
 
 
 if __name__ == '__main__':
-    from circleLib import posToPolar
+    from ColorAndPositionConversion import posToPolar
     #thing = NearestNeighbor(3, None)
     points = []
     for _ in range(20):
