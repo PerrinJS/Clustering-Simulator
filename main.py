@@ -2,6 +2,7 @@
 import random
 import math
 import pygame
+import colorsys
 from time import sleep
 from rainbowPointPlotter import RainbowPointPlotter
 from gui import Button
@@ -67,19 +68,33 @@ def runNearestSim(rainbow_point_plotter):
     #FIXME: this is just for testing currently we just print randomly colored
     #dots to screen
     #TODO: zero the saturation of the colors
-    randColorsWeb = genRandColors(10)
-    randColors = []
-    for color in randColorsWeb:
-        randColors.append(convertWebToRGB(color))
-    rainbow_point_plotter.setColors(randColors)
+    if not rainbow_point_plotter.getDrawPoints():
+        rainbow_point_plotter.toggleDrawPoints()
+
+    if rainbow_point_plotter.getColors() == None:
+        randColorsWeb = genRandColors(10)
+        randColors = []
+        for color in randColorsWeb:
+            (r,g,b) = convertWebToRGB(color)
+            (h,s,_) = colorsys.rgb_to_hsv(r,g,b)
+            #value is .9 to add a little tint to the inside of the circles
+            color = colorsys.hsv_to_rgb(h,s,.9)
+            randColors.append(color)
+        rainbow_point_plotter.setColors(randColors)
+
+#FIXME: finish this
+#def displayNearst(grouped_points):
+
 
 if __name__ == '__main__':
     pygame.init()
     main_window = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
     rainbowCircle = RainbowPointPlotter(None, WINDOW_SIZE, CENTER, MAX_RADIUS)
     exit_button = Button(main_window, ( .99-.1, .99-.1, .1, .1), True, "Exit")
-    run_button = Button(main_window, (.01, .99-.1, .1, .1), True, "Run")
-    screen_buttons = [exit_button, run_button]
+    new_button = Button(main_window, ( .99-.1, .99-.1-.11, .1, .1), True, "New")
+    draw_group_button = Button(main_window, (.01, .99-.1, .15, .1), True, "Draw Group Color")
+    draw_colors_button = Button(main_window, (.01, .99-.1-.11, .15, .1), True, "Draw Real Color")
+    screen_buttons = [exit_button, draw_group_button, draw_colors_button, new_button]
 
     #set window title
     pygame.display.set_caption("Nearest Neighbour Simulator")
@@ -94,10 +109,13 @@ if __name__ == '__main__':
     def exitFunction():
         global shouldExit
         shouldExit = True
-    exit_button.set_func(lambda : exitFunction())
-    run_button.set_func(lambda : runNearestSim(rainbowCircle))
+    exit_button.set_func(exitFunction)
+    new_button.set_func(rainbowCircle.reset)
+    draw_colors_button.set_func(lambda : runNearestSim(rainbowCircle))
+    #FIXME
+    #draw_group_button.set_func(lambda : )
 
-    #This is so we can initially draw the circle to the correct size
+    #this is so we can initially draw the circle to the correct size
     resizeRainbowCircle(None)
     while shouldExit is False:
         for element in screen_buttons:
@@ -137,6 +155,7 @@ if __name__ == '__main__':
 
         if (not shouldExit) and updated:
             rainbowCircle.draw(main_window)
+            #we always want the buttons on top
             for element in screen_buttons:
                 element.draw()
             pygame.display.flip()
