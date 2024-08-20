@@ -3,6 +3,23 @@ import math
 import colorsys
 import pygame
 
+def convertWebToRGB(color):
+    color_str = hex(color)
+    #strip off the 0x
+    color_str = color_str[2:]
+    for i in range(6-len(color_str)):
+        color_str = '0' + color_str
+    red_str = color_str[:2]
+    green_str = color_str[2:4]
+    blue_str = color_str[4:6]
+
+    red_int = int(red_str, 16)
+    green_int = int(green_str, 16)
+    blue_int = int(blue_str, 16)
+
+    ret = (red_int/255, green_int/255, blue_int/255)
+    return ret
+
 def convertToPygameColor(color):
     red = 255 * color[0]
     green = 255 * color[1]

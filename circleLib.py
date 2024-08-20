@@ -1,40 +1,70 @@
 #!/usr/bin/python
 import pygame
+import math
 import ColorAndPositionConversion as CAPConv
 
 #TODO: the purpose of drawing it into a buffer so we dont have to re-calc every time
 #       Maybe on init accept a start buffer size so we always scale down.
+#TODO: convert to be a gui element, so it does not rely on injecting the center and dimentions everywhere
+
+def find_center(window_size):
+    return (math.floor(window_size[0]/2), math.floor(window_size[1]/2))
+
+def find_max_radius(window_size):
+    return math.floor(min(window_size[0], window_size[1])/2)
+
+def find_buff_width(window_size):
+    return min(window_size[0], window_size[1])
+
 class RainbowCircle:
-    def __init__(self, window_size, center, max_radius):
+    def __init__(self, window_size, max_radius = None, center = None):
         self.WINDOW_SIZE = []
         self.WINDOW_SIZE.append(window_size[0])
         self.WINDOW_SIZE.append(window_size[1])
 
         self.CENTER = []
+        if center is None:
+            center = find_center(window_size)
         self.CENTER.append(center[0])
         self.CENTER.append(center[1])
 
-        self.MAX_RADIUS = max_radius
+        if max_radius is None:
+            self.MAX_RADIUS = find_max_radius(window_size)
+        else:
+            self.MAX_RADIUS = max_radius
 
-        self.BUFF_WIDTH = min(self.WINDOW_SIZE[0], self.WINDOW_SIZE[1])
+        self.BUFF_WIDTH = find_buff_width(window_size)
         self.DEFF_BUFF_WIDTH = self.BUFF_WIDTH
-        self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
-        self.blankCircle.fill(0x00)
-        self.renderRainbowCircle()
-        self.scaleBuff = False
 
-    def updateDimens(self, window_size, center, max_radius):
+        self.scaleBuff = False
+        self.attached_window = None
+        self.init = False
+
+    def attach_window(self, surface):
+        self.attached_window = surface
+
+    #TODO: Try update this to pull data from the surface its self
+    def updateDimens(self, window_size=None, center=None, max_radius=None):
         self.WINDOW_SIZE = []
+        if window_size is None:
+            if self.attach_window is None:
+                raise ValueError("No attached window to refference size from")
+            window_size = self.attached_window.get_size()
         self.WINDOW_SIZE.append(window_size[0])
         self.WINDOW_SIZE.append(window_size[1])
 
         self.CENTER = []
+        if center is None:
+            center = find_center(window_size)
         self.CENTER.append(center[0])
         self.CENTER.append(center[1])
 
-        self.MAX_RADIUS = max_radius
+        if max_radius is None:
+            self.MAX_RADIUS = find_max_radius(window_size)
+        else:
+            self.MAX_RADIUS = max_radius
 
-        potential_buff_width = min(self.WINDOW_SIZE[0], self.WINDOW_SIZE[1])
+        potential_buff_width = find_buff_width(window_size)
         if self.BUFF_WIDTH <= potential_buff_width:
             self.BUFF_WIDTH = potential_buff_width
             self.DEFF_BUFF_WIDTH = self.BUFF_WIDTH
@@ -53,13 +83,27 @@ class RainbowCircle:
                 polarPos = CAPConv.posToPolar(pos, (self.BUFF_WIDTH/2, self.BUFF_WIDTH/2))
                 self.blankCircle.set_at(pos, CAPConv.sampleHexColor(self.MAX_RADIUS, polarPos[1], polarPos[0]))
 
-    def draw(self, window):
+    def draw(self, window=None):
+        if not self.init:
+            self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
+            self.blankCircle.fill(0x00)
+            self.renderRainbowCircle()
+            self.init = True
+
         if self.DEFF_BUFF_WIDTH <= self.BUFF_WIDTH:
             outputCircle = pygame.transform.scale(self.blankCircle, (self.DEFF_BUFF_WIDTH,self.DEFF_BUFF_WIDTH))
         else:
             outputCircle = self.blankCircle
-        window.blit(outputCircle, (self.CENTER[0]-self.DEFF_BUFF_WIDTH/2,
-                                       self.CENTER[1]-self.DEFF_BUFF_WIDTH/2))
+
+        if window is None:
+            #If it's still None then we skip in the next step
+            window = self.attached_window
+        elif self.attached_window is None:
+            self.attach_window(window)
+
+        if window:
+            window.blit(outputCircle, (self.CENTER[0]-self.DEFF_BUFF_WIDTH/2,
+                                        self.CENTER[1]-self.DEFF_BUFF_WIDTH/2))
 
 
 

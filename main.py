@@ -1,16 +1,14 @@
 #!/usr/bin/python
+import pygame
 import random
 import math
-import pygame
 import colorsys
-from time import sleep
+import ColorAndPositionConversion as CAPConv
+from ScreenManagement import InterfaceManager
 from rainbowPointPlotter import RainbowPointPlotter
 from gui import Button
 
 WINDOW_SIZE = (1000, 600)
-BACKGROUND_COLOR = 0x000000
-CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
-MAX_RADIUS = math.floor(min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
 
 def genRandColor():
     return random.randrange(0x000000, 0xffffff)
@@ -20,48 +18,6 @@ def genRandColors(quantity):
     for i in range(0,quantity):
         colors[i] = genRandColor()
     return colors
-
-def genRandSquare():
-    topLeft = (random.randrange(0, WINDOW_SIZE[0]), random.randrange(0, WINDOW_SIZE[1]))
-    sideLength = random.randrange(0, math.floor(WINDOW_SIZE[0]/2))
-    return pygame.Rect(topLeft[0], topLeft[1], sideLength, sideLength)
-
-def drawRandSquare(window):
-    randSquare = genRandSquare()
-    randColor = genRandColor()
-    pygame.draw.rect(window, randColor, randSquare)
-
-def clearBackground(window):
-    main_window.fill(BACKGROUND_COLOR)
-    pygame.display.flip()
-
-def resizeRainbowCircle(rainbowCircle):
-    WINDOW_SIZE = main_window.get_size()
-    CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
-    MAX_RADIUS = math.floor(min(WINDOW_SIZE[0], WINDOW_SIZE[1])/2)
-    if rainbowCircle is None:
-        rainbowCircle = RainbowPointPlotter(None, WINDOW_SIZE, CENTER, MAX_RADIUS)
-    else:
-        rainbowCircle.updateDimens(WINDOW_SIZE, CENTER, MAX_RADIUS)
-    clearBackground(main_window)
-    return (rainbowCircle)
-
-def convertWebToRGB(color):
-    color_str = hex(color)
-    #strip off the 0x
-    color_str = color_str[2:]
-    for i in range(6-len(color_str)):
-        color_str = '0' + color_str
-    red_str = color_str[:2]
-    green_str = color_str[2:4]
-    blue_str = color_str[4:6]
-
-    red_int = int(red_str, 16)
-    green_int = int(green_str, 16)
-    blue_int = int(blue_str, 16)
-
-    ret = (red_int/255, green_int/255, blue_int/255)
-    return ret
 
 def runNearestSim(rainbow_point_plotter):
     """ This should trigger the plotter to run the simulation """
@@ -75,7 +31,7 @@ def runNearestSim(rainbow_point_plotter):
         randColorsWeb = genRandColors(10)
         randColors = []
         for color in randColorsWeb:
-            (r,g,b) = convertWebToRGB(color)
+            (r,g,b) = CAPConv.convertWebToRGB(color)
             (h,s,_) = colorsys.rgb_to_hsv(r,g,b)
             #value is .9 to add a little tint to the inside of the circles
             color = colorsys.hsv_to_rgb(h,s,.9)
@@ -85,81 +41,120 @@ def runNearestSim(rainbow_point_plotter):
 #FIXME: finish this
 #def displayNearst(grouped_points):
 
+class RandSquareDrawer:
+    def __init__(self):
+        self.active = False
+        self.attached_window = None
+
+    def inc(self, _pos, interface_manager):
+        if self.active:
+            interface_manager.set_updated()
+
+    def on_mouse_up(self, _window):
+        pass
+
+    def on_mouse_down(self, _window):
+        pass
+
+    def toggle(self):
+        if self.active:
+            self.active = False
+        else:
+            self.active = True
+
+    def is_active(self):
+        return self.active
+
+    def attach_window(self, surface):
+        self.attached_window = surface
+
+    def _genRandSquare():
+        topLeft = (random.randrange(0, WINDOW_SIZE[0]), random.randrange(0, WINDOW_SIZE[1]))
+        sideLength = random.randrange(0, math.floor(WINDOW_SIZE[0]/2))
+        return pygame.Rect(topLeft[0], topLeft[1], sideLength, sideLength)
+
+    def _drawRandSquare(self, window):
+        randSquare = RandSquareDrawer._genRandSquare()
+        randColor = genRandColor()
+        pygame.draw.rect(window, randColor, randSquare)
+
+    def updateDimens(self, _window_size=None, _center=None, _max_radius=None):
+        pass
+
+    def draw(self, window=None):
+        if self.active:
+            if window is None:
+                if self.attached_window is None:
+                    raise ValueError("No attached surface")
+                window = self.attached_window
+            self._drawRandSquare(window)
+
+
+def quit_func(event=None, screen_elements=None, interface_manager=None):
+    if interface_manager is None:
+        raise ValueError("No interface_manager given")
+    interface_manager.exit_func()
+
+def resize_func(event, screen_elements, interface_manager):
+    for element in screen_elements:
+        element.updateDimens()
+    interface_manager.set_updated()
+    interface_manager.clear_background()
+
+def clear_func(event, screen_elements, interface_manager):
+    interface_manager.set_updated()
+    interface_manager.clear_background()
+
+def toggle_rand_func(event, screen_elements, interface_manager):
+    screen_elements[1].toggle()
+
+def key_down(event, screen_elements, interface_manager):
+    if event.key == pygame.K_F12:
+        toggle_rand_func(event, screen_elements, interface_manager)
+    elif event.key == pygame.K_c:
+        clear_func(event, screen_elements, interface_manager)
+    elif event.key == pygame.K_q:
+        quit_func(event, screen_elements, interface_manager)
+
+def on_mouse_down(_event, screen_elements, interface_manager):
+    for element in screen_elements:
+        element.on_mouse_down(interface_manager.get_main_window())
+    interface_manager.set_updated()
+
+def on_mouse_up(_event, screen_elements, interface_manager):
+    for element in screen_elements:
+        element.on_mouse_up(interface_manager.get_main_window())
+    interface_manager.set_updated()
+
+def draw_func(screen_elements, main_window, interface_manager):
+    #we always want the buttons on top
+    for element in screen_elements:
+        element.draw(main_window)
 
 if __name__ == '__main__':
-    pygame.init()
-    main_window = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
-    rainbowCircle = RainbowPointPlotter(None, WINDOW_SIZE, CENTER, MAX_RADIUS)
-    exit_button = Button(main_window, ( .99-.1, .99-.1, .1, .1), True, "Exit")
-    new_button = Button(main_window, ( .99-.1, .99-.1-.11, .1, .1), True, "New")
-    draw_group_button = Button(main_window, (.01, .99-.1, .15, .1), True, "Draw Group Color")
-    draw_colors_button = Button(main_window, (.01, .99-.1-.11, .15, .1), True, "Draw Real Color")
-    screen_buttons = [exit_button, draw_group_button, draw_colors_button, new_button]
+    WINDOW_SIZE = (1000, 600)
+    rainbowCircle = RainbowPointPlotter(None, WINDOW_SIZE)
+    exit_button = Button(None, ( .99-.1, .99-.1, .1, .1), True, "Exit")
+    new_button = Button(None, ( .99-.1, .99-.1-.11, .1, .1), True, "New")
+    draw_group_button = Button(None, (.01, .99-.1, .15, .1), True, "Draw Group Color")
+    draw_colors_button = Button(None, (.01, .99-.1-.11, .15, .1), True, "Draw Real Color")
+    screen_elements = [rainbowCircle, RandSquareDrawer(), exit_button,\
+                       draw_group_button, draw_colors_button, new_button]
 
-    #set window title
-    pygame.display.set_caption("Nearest Neighbour Simulator")
-    clearBackground(main_window)
+    event_table = {
+        pygame.QUIT :           [quit_func],
+        pygame.KEYDOWN  :       [key_down],
+        pygame.VIDEORESIZE:     [resize_func],
+        pygame.MOUSEBUTTONUP:   [on_mouse_up],
+        pygame.MOUSEBUTTONDOWN:   [on_mouse_down]
+    }
 
-    #main loop flags
-    shouldExit = False
-    randSquares = False
-    updated = True
+    interface = InterfaceManager(event_table, screen_elements, WINDOW_SIZE)
 
-    #TODO: find a neater way of doing this
-    def exitFunction():
-        global shouldExit
-        shouldExit = True
-    exit_button.set_func(exitFunction)
-    new_button.set_func(rainbowCircle.reset)
+    interface.set_draw_hook(draw_func)
+    exit_button.set_func(lambda : quit_func(interface_manager=interface))
+    new_button.set_func(screen_elements[0].reset)
     draw_colors_button.set_func(lambda : runNearestSim(rainbowCircle))
-    #FIXME
-    #draw_group_button.set_func(lambda : )
 
-    #this is so we can initially draw the circle to the correct size
-    resizeRainbowCircle(None)
-    while shouldExit is False:
-        for element in screen_buttons:
-            if element.inc(pygame.mouse.get_pos()):
-                updated = True
-
-        if randSquares:
-            drawRandSquare(main_window)
-            updated = True
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                shouldExit = True
-                break
-            elif event.type == pygame.VIDEORESIZE:
-                resizeRainbowCircle(rainbowCircle)
-                updated = True
-                break
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F12:
-                    randSquares = not randSquares
-                elif event.key == pygame.K_c:
-                    clearBackground(main_window)
-                    updated = True
-                elif event.key == pygame.K_q:
-                    pygame.quit()
-                    shouldExit = True
-                    break
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                for element in screen_buttons:
-                    element.on_mouse_down()
-                updated = True
-            elif event.type == pygame.MOUSEBUTTONUP:
-                for element in screen_buttons:
-                    element.on_mouse_up()
-                updated = True
-
-        if (not shouldExit) and updated:
-            rainbowCircle.draw(main_window)
-            #we always want the buttons on top
-            for element in screen_buttons:
-                element.draw()
-            pygame.display.flip()
-        else:
-            sleep(.1)
-
-        updated = False
+    interface.run()
+    print("EXITING")

@@ -1,11 +1,11 @@
 #!/usr/bin/python
 import pygame
 
+#FIXME: covert to take a window to draw to, make it attachable like with rainbow circle. There are some functions that reqire window and we have no method of injecting a window to be used internally.
+
 class Button:
-    #TODO: implement relative sizing such that when the screen is scalled the buttons are scaled to match
-    def __init__(self, surface, shape_pos=(0,0,0,0), relative_size=False, label="", fit_text=True, colors=((0,255,0), (55,69,84), (00,00,00))):
-        #TODO: add color maybe
-        self.surface = surface
+    def __init__(self, surface=None, shape_pos=(0,0,0,0), relative_size=False, label="", fit_text=True, colors=((0,255,0), (55,69,84), (00,00,00))):
+        self.surface = None
         self.relative_size = relative_size
         #We keep the orrigenal for when we input relative sizeing values such that we can then resize based on new screen sizes
         self.inp_shape_pos = shape_pos
@@ -14,13 +14,12 @@ class Button:
         self.fit_text = fit_text
         self.is_button_down = False
         self.is_hover = False
-        #FIXME: this is just for testing
-        self.font = pygame.font.Font('Caladea-Regular.ttf', 40)
         self.label_surface = None
         self.BUTTON_BORDER = 0.90
         self.colors = colors
 
         self.func = None
+        self.font = None
 
     def _adjust_for_relative_sizing(self, window_size):
         ret = pygame.Rect(self.shape_pos)
@@ -29,14 +28,29 @@ class Button:
             ret = pygame.Rect(int(x*window_size[0]), int(y*window_size[1]), int(w*window_size[0]), int(h*window_size[1]))
         return ret
 
-    def draw(self):
+    def attach_window(self, surface):
+        self.surface = surface
+
+    def updateDimens(self, _window_size=None, _center=None, _max_radius=None):
+        pass
+
+    def draw(self, window=None):
+        #FIXME: this is just for testing
+        if self.font is None:
+            self.font = pygame.font.Font('Caladea-Regular.ttf', 40)
+
+        if window is None:
+            if self.surface is None:
+                raise ValueError("No surface was given to draw to")
+            window = self.surface
+
         if self.is_button_down == True:
-            pygame.draw.rect(self.surface, pygame.Color(self.colors[2]), self._adjust_for_relative_sizing(self.surface.get_size()))
+            pygame.draw.rect(window, pygame.Color(self.colors[2]), self._adjust_for_relative_sizing(window.get_size()))
         else:
             button_box_color = self.colors[1]
             if self.is_hover:
                 button_box_color = (min(button_box_color[0] * 2, 255),min(button_box_color[1] * 2, 255), min(button_box_color[2] * 2, 255))
-            pygame.draw.rect(self.surface, button_box_color, self._adjust_for_relative_sizing(self.surface.get_size()))
+            pygame.draw.rect(window, button_box_color, self._adjust_for_relative_sizing(window.get_size()))
         #TODO: or we changed the label ---v
         if self.label_surface is None:
             #True = anti aliasing on
@@ -44,7 +58,7 @@ class Button:
 
         text_rect = self.label_surface.get_rect()
         #TODO: do this properly (take into account height)
-        real_shape_pos = self._adjust_for_relative_sizing(self.surface.get_size())
+        real_shape_pos = self._adjust_for_relative_sizing(window.get_size())
         butt_size_vs_txt = \
             (real_shape_pos.width - text_rect.width)#) + \
              #(self.shape_pos.height - text_rect.height))
@@ -69,7 +83,7 @@ class Button:
             output_label = pygame.transform.scale(self.label_surface, (text_rect.width, text_rect.height))
 
         text_rect.center = real_shape_pos.center
-        self.surface.blit(output_label, text_rect)
+        window.blit(output_label, text_rect)
 
     def set(self):
         self.is_button_down = True
@@ -80,31 +94,37 @@ class Button:
         self.is_button_down = False
         self.is_hover = False
 
-    def is_pos_inside(self, pos):
+    def is_pos_inside(self, pos, window=None):
+
+        if window is None:
+            if self.surface is None:
+                raise ValueError("No surface was given to refference")
+            window = self.surface
+
         x,y = pos
         pos_rect = pygame.Rect(x,y,1,1)
         if self.relative_size:
-            real_shape_pos = self._adjust_for_relative_sizing(self.surface.get_size())
+            real_shape_pos = self._adjust_for_relative_sizing(window.get_size())
             return real_shape_pos.contains(pos_rect)
         else:
             return self.shape_pos.contains(pos_rect)
 
-    def on_mouse_down(self):
-        if self.is_pos_inside(pygame.mouse.get_pos()):
+    def on_mouse_down(self, window):
+        if self.is_pos_inside(pygame.mouse.get_pos(), window):
             self.set()
 
-    def on_mouse_up(self):
+    def on_mouse_up(self, _window):
         self.reset()
 
-    def hover_check(self, pos):
-        if self.is_pos_inside(pos):
+    def hover_check(self, pos, surface):
+        if self.is_pos_inside(pos, surface):
             self.is_hover = True
         else:
             self.is_hover = False
         return self.is_hover
 
-    def inc(self, pos):
-        if self.is_hover != self.hover_check(pos):
+    def inc(self, pos, interface_manager):
+        if self.is_hover != self.hover_check(pos, interface_manager.get_main_window()):
             return True
         return False
 

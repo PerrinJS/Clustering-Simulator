@@ -1,10 +1,11 @@
-#TODO: this will be a library that holds a rainbow circle and after blitting to what we want to draw to will then overlay its colored points in its own surface over the top
 import pygame
 from circleLib import RainbowCircle
 import ColorAndPositionConversion as CAPConv
 
+#TODO: convert to be a gui element, so it does not rely on injecting the center and dimentions everywhere
 class RainbowPointPlotter:
     def __init__(self, rainbow_circle = None, window_size = None, center = None, max_radius = None):
+        self.attached_window = None
         self.rainbow_circle = None
         self.colors = None
         #will only draw circle unless this is true
@@ -14,17 +15,29 @@ class RainbowPointPlotter:
         #stors the color for the group for a given position in the colors array
         self.grouped_colors = []
         #If we need to create one
-        if rainbow_circle is None and not (window_size is None or center is None or max_radius is None):
-            self.rainbow_circle = RainbowCircle(window_size, center, max_radius)
+        if rainbow_circle is None and not (window_size is None):
+            self.rainbow_circle = RainbowCircle(window_size, max_radius, center)
         #if we already have one
         elif rainbow_circle is not None:
             self.rainbow_circle = rainbow_circle
             #if not all are none then we are getting mixed messages about which to use
-            if not (window_size is None and center is None and max_radius is None):
+            if not (window_size is None):
                 raise ValueError("You cannot use both rainbow circle and the other values, which would we pick?")
         #if not enough info is provided
         else:
-            raise ValueError("Nither rainbow circle nor window size, center and radius where provided")
+            raise ValueError("Nither rainbow circle nor window size where provided")
+
+    def inc(self, _pos, _interface_manager):
+        pass
+
+    def on_mouse_up(self, _window):
+        pass
+
+    def on_mouse_down(self, _window):
+        pass
+
+    def attach_window(self, surface):
+        self.attached_window = surface
 
     def drawColor(self, color, circle, surface):
         center = (int(circle.DEFF_BUFF_WIDTH/2), int(circle.DEFF_BUFF_WIDTH/2))
@@ -44,7 +57,7 @@ class RainbowPointPlotter:
                            pos,\
                            dot_diamiter)
 
-    def draw(self, window):
+    def draw(self, window=None):
         #TODO: every time we draw to the rainbow circle anything outside of the
         #circle is rendered onto the windows background area (an area where
         #nothing is ever rendered to) and thus is not overwritten the next time
@@ -52,7 +65,7 @@ class RainbowPointPlotter:
         self.rainbow_circle.draw(window)
 
         circle = self.rainbow_circle
-        #FIXME: make this part of the class
+        #TODO: make this part of the class
         surface = pygame.Surface(circle.blankCircle.get_size()).convert_alpha()
         surface.fill(0x00)
 
@@ -67,15 +80,21 @@ class RainbowPointPlotter:
                         pos = self.grouped_colors[i]
                         self.drawColorAtPos(color, pos, circle, surface)
 
-        #Make sure we draw in the same location as the rainbow circle is in
-        window.blit(surface, (circle.CENTER[0]-circle.DEFF_BUFF_WIDTH/2,
-                                       circle.CENTER[1]-circle.DEFF_BUFF_WIDTH/2))
+        if window is None:
+            window = self.attached_window
+        elif self.attached_window is None:
+            self.attach_window(window)
+
+        if window:
+            #Make sure we draw in the same location as the rainbow circle is in
+            window.blit(surface, (circle.CENTER[0]-circle.DEFF_BUFF_WIDTH/2,
+                                        circle.CENTER[1]-circle.DEFF_BUFF_WIDTH/2))
 
     def groupPoints(self):
         #FIXME: TODO
         return
 
-    def updateDimens(self, window_size, center, max_radius):
+    def updateDimens(self, window_size=None, center=None, max_radius=None):
         self.rainbow_circle.updateDimens(window_size, center, max_radius)
 
     def toggleDrawPoints(self):
