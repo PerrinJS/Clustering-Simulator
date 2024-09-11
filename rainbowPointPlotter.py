@@ -42,7 +42,7 @@ class RainbowPointPlotter:
     def drawColor(self, color, circle, surface):
         center = (int(circle.DEFF_BUFF_WIDTH/2), int(circle.DEFF_BUFF_WIDTH/2))
 
-        sample_pos_center_ref = CAPConv.samplePointFromRGB(CAPConv.convertFromPygameColor(color), circle.MAX_RADIUS)
+        sample_pos_center_ref = CAPConv.samplePointFromRGB(color, circle.MAX_RADIUS)
         sample_pos = CAPConv.toRealScreenPos(sample_pos_center_ref, center)
         self.drawColorAtPos(color, sample_pos, circle, surface)
 
@@ -70,15 +70,16 @@ class RainbowPointPlotter:
         surface.fill(0x00)
 
         if self.draw_points:
-            if not self.draw_grouped:
-                if self.colors is not None:
-                    for color in self.colors:
-                        self.drawColor(color, circle, surface)
-            else:
+            if self.draw_grouped:
                 if (self.colors is not None) and (len(self.grouped_colors) == 0):
                     for i, color in enumerate(self.colors):
                         pos = self.grouped_colors[i]
                         self.drawColorAtPos(color, pos, circle, surface)
+            else:
+                #Draw the colors at the points that are given
+                if self.colors is not None:
+                    for color in self.colors:
+                        self.drawColor(color, circle, surface)
 
         if window is None:
             window = self.attached_window
@@ -89,10 +90,6 @@ class RainbowPointPlotter:
             #Make sure we draw in the same location as the rainbow circle is in
             window.blit(surface, (circle.CENTER[0]-circle.DEFF_BUFF_WIDTH/2,
                                         circle.CENTER[1]-circle.DEFF_BUFF_WIDTH/2))
-
-    def groupPoints(self):
-        #FIXME: TODO
-        return
 
     def updateDimens(self, window_size=None, center=None, max_radius=None):
         self.rainbow_circle.updateDimens(window_size, center, max_radius)
@@ -124,3 +121,6 @@ class RainbowPointPlotter:
 
     def getColors(self):
         return self.colors
+
+    def getCircleCenter(self):
+        return self.rainbow_circle.CENTER

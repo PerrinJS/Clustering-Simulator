@@ -19,7 +19,8 @@ def _calculateCentroid(cluster):
         runningXSum += point[0]
         runningYSum += point[1]
     adveragePos = (runningXSum/len(cluster), runningYSum/len(cluster))
-    centroid = _argmin(list([math.dist(adveragePos, point) for point in cluster]))
+    centroid_idx = _argmin(list([math.dist(adveragePos, point) for point in cluster]))
+    centroid = cluster[centroid_idx]
     return centroid
 
 class KNearestNeighbor:
@@ -107,6 +108,18 @@ class KMeansClusterer:
         self.clusteredData = None
         self.centroids = None
 
+    def convert_pos_to_hsv(c_list, center=None):
+        output = []
+        for color in c_list:
+            output.append(CAPConv.posToPolar(color, None))
+        return output
+
+    def convert_clusters_to_hsv(clust_list, center):
+        output = []
+        for cluster in clust_list:
+            output.append(KMeansClusterer.convert_pos_to_hsv(cluster, center))
+        return output
+
     def generateLabels(self):
         if len(self.data) < self.numNeighbours:
             raise ValueError("You can't have more neighbours then data points")
@@ -148,16 +161,15 @@ class KMeansClusterer:
         self.clusteredData = clusters
         self.centroids = euclidianCentroids
 
-
-    def getClusters(self):
+    def getClusters(self, center):
         if self.clusteredData is None:
             self.generateLabels()
-        return self.clusteredData
+        return KMeansClusterer.convert_clusters_to_hsv(self.clusteredData, center)
 
-    def getCentroids(self):
+    def getCentroids(self, center):
         if self.centroids is None:
             self.generateLabels()
-        return self.centroids
+        return KMeansClusterer.convert_pos_to_hsv(self.centroids, center)
 
 
 
@@ -170,9 +182,20 @@ if __name__ == '__main__':
     randPointsPolar = [posToPolar(point, (250,250)) for point in points]
 
     clusterer = KMeansClusterer(data = randPointsPolar)
-    clusters = clusterer.getClusters()
+    clusters = clusterer.getClusters((0,0))
     point = (random.randrange(1, 500), random.randrange(1,500))
     point = posToPolar(point, (250,250))
     nearestNeighborFinder = KNearestNeighbor(clusteredData = clusters)
     pointsCluster = nearestNeighborFinder.clasifyPoint(point)
     print(str(point) + "\n" + str(clusters[pointsCluster]) + "\n\n" + str(clusters))
+
+    calc_centroid_list = [(1,1), (2,2), (3,3)]
+    calc_centroid = _calculateCentroid(calc_centroid_list)
+    print(str(calc_centroid) + ' == (2,2)')
+    print(str(calc_centroid_list[1]) + ' == ' + str(calc_centroid_list[calc_centroid_list.index((2,2))]))
+    assert(_calculateCentroid([(1,1), (2,2), (3,3)]) == (2,2))
+
+    #Check the conversion of the values
+    cluterer = KMeansClusterer(data = calc_centroid_list)
+    clusters = cluterer.getClusters((0,0))
+    print(clusters)

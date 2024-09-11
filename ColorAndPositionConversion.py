@@ -26,6 +26,12 @@ def convertToPygameColor(color):
     blue = 255 * color[2]
     return (red, green, blue)
 
+def hsv_to_rgb(max_radius, color):
+    h,s,v = color
+    sx = abs(s/max_radius)
+    return colorsys.hsv_to_rgb(h/(2*math.pi), sx, v/100)
+
+
 def convertFromPygameColor(color):
     red = color[0]/255
     green = color[1]/255
@@ -33,8 +39,7 @@ def convertFromPygameColor(color):
     return (red, green, blue)
 
 def sampleHexColor(max_radius, h, s, v = 100):
-    sx = abs(s/max_radius)
-    color = colorsys.hsv_to_rgb(h/(2*math.pi), sx, v/100)
+    color = hsv_to_rgb(max_radius, (h,s,v))
     return convertToPygameColor(color)
 
 def samplePointFromRGB(rgb_color, max_radius):
@@ -59,9 +64,12 @@ def toRealScreenPos(point, center):
     cX, cY = center
     return (x+cX, y+cY)
 
-def posToPolar(point, center):
+def posToPolar(point, center=None):
     """converts cartesian coordinates to polar coordinates using the center as refference"""
-    (x,y) = normalizePoint(point, center)
+    if center is not None:
+        (x,y) = normalizePoint(point, center)
+    else:
+        (x,y) = point
     r = math.sqrt(abs(x*x + y*y))
     if x == 0:
         if y == 0:

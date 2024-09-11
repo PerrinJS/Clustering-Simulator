@@ -6,6 +6,8 @@ import colorsys
 import ColorAndPositionConversion as CAPConv
 from ScreenManagement import InterfaceManager
 from rainbowPointPlotter import RainbowPointPlotter
+from circleLib import find_center
+from clusteringAndClassification import KMeansClusterer
 from gui import Button
 
 WINDOW_SIZE = (1000, 600)
@@ -19,27 +21,69 @@ def genRandColors(quantity):
         colors[i] = genRandColor()
     return colors
 
-def runNearestSim(rainbow_point_plotter):
-    """ This should trigger the plotter to run the simulation """
-    #FIXME: this is just for testing currently we just print randomly colored
-    #dots to screen
-    #TODO: zero the saturation of the colors
-    if not rainbow_point_plotter.getDrawPoints():
-        rainbow_point_plotter.toggleDrawPoints()
-
-    if rainbow_point_plotter.getColors() == None:
-        randColorsWeb = genRandColors(10)
-        randColors = []
-        for color in randColorsWeb:
+class SimPointManager:
+    def convert_colors(colors):
+        converted_colors = []
+        for color in colors:
             (r,g,b) = CAPConv.convertWebToRGB(color)
             (h,s,_) = colorsys.rgb_to_hsv(r,g,b)
             #value is .9 to add a little tint to the inside of the circles
             color = colorsys.hsv_to_rgb(h,s,.9)
-            randColors.append(color)
-        rainbow_point_plotter.setColors(randColors)
+            converted_colors.append(color)
 
-#FIXME: finish this
-#def displayNearst(grouped_points):
+        return converted_colors
+
+    def __init__(self):
+        self.points = None
+        self.converted_points = None
+        self.clustered_points = None
+        self.ungrouped_clusterd = None
+
+    def reset(self):
+        self.points = None
+        self.converted_points = None
+        self.clustered_points = None
+        self.ungrouped_clusterd = None
+
+    def set_points(self, points):
+        self.points = points
+        self.converted_points = SimPointManager.convert_colors(self.points)
+
+    def get_conv_points(self):
+        return self.converted_points
+
+    def get_conv_points_clustered(self):
+        if self.clustered_points:
+            return self.ungrouped_clusterd
+
+        center = (0,0) #Thease data points are just colors and the way they will be used in clustering will not relate to any spesific relative position.
+        hsv_converted_points = [colorsys.rgb_to_hsv(r,g,b) for r,g,b in self.converted_points]
+
+        clusterer = KMeansClusterer(data=hsv_converted_points)
+        self.clustered_points = clusterer.getClusters(center)
+        ungrouped_clusterd_points_hsv = []
+        for cluster in self.clustered_points:
+            ungrouped_clusterd_points_hsv = ungrouped_clusterd_points_hsv + cluster
+
+        centroids = clusterer.getCentroids(center)
+        #FIXME: this is inificient
+        for i in range(len(ungrouped_clusterd_points_hsv)):
+            h,s = ungrouped_clusterd_points_hsv[i]
+            #Dark point is a centroid, light point is a standard point
+            if ungrouped_clusterd_points_hsv[i] in centroids:
+                ungrouped_clusterd_points_hsv[i] = (h,s,.6)
+            else:
+                ungrouped_clusterd_points_hsv[i] = (h,s,.9)
+
+        ungrouped_clusterd_points = []
+        for i in range(len(ungrouped_clusterd_points_hsv)):
+            h,s,v = ungrouped_clusterd_points_hsv[i]
+            color = colorsys.hsv_to_rgb(h,s,v)
+            ungrouped_clusterd_points.append(color)
+
+        self.ungrouped_clusterd = ungrouped_clusterd_points
+        return ungrouped_clusterd_points
+
 
 class RandSquareDrawer:
     def __init__(self):
@@ -89,6 +133,27 @@ class RandSquareDrawer:
                 window = self.attached_window
             self._drawRandSquare(window)
 
+def runNearestSim(rainbow_point_plotter, sim_point_manager, show_clusters, interface_manager):
+    """ This should trigger the plotter to run the simulation """
+    #FIXME: this is just for testing currently we just print randomly colored
+    #dots to screen
+    if not rainbow_point_plotter.getDrawPoints():
+        rainbow_point_plotter.toggleDrawPoints()
+
+    if rainbow_point_plotter.getColors() == None:
+        if sim_point_manager.get_conv_points() is None:
+            randColorsWeb = genRandColors(100)
+            sim_point_manager.set_points(randColorsWeb)
+
+    if show_clusters:
+        rainbow_point_plotter.setColors(sim_point_manager.get_conv_points_clustered())
+    else:
+        rainbow_point_plotter.setColors(sim_point_manager.get_conv_points())
+
+
+def new_handler(rainbow_point_plotter, sim_point_manager):
+    rainbow_point_plotter.reset()
+    sim_point_manager.reset()
 
 def quit_func(event=None, screen_elements=None, interface_manager=None):
     if interface_manager is None:
@@ -134,6 +199,7 @@ def draw_func(screen_elements, main_window, interface_manager):
 if __name__ == '__main__':
     WINDOW_SIZE = (1000, 600)
     rainbowCircle = RainbowPointPlotter(None, WINDOW_SIZE)
+    sim_point_manager = SimPointManager()
     exit_button = Button(None, ( .99-.1, .99-.1, .1, .1), True, "Exit")
     new_button = Button(None, ( .99-.1, .99-.1-.11, .1, .1), True, "New")
     draw_group_button = Button(None, (.01, .99-.1, .15, .1), True, "Draw Group Color")
@@ -153,8 +219,9 @@ if __name__ == '__main__':
 
     interface.set_draw_hook(draw_func)
     exit_button.set_func(lambda : quit_func(interface_manager=interface))
-    new_button.set_func(screen_elements[0].reset)
-    draw_colors_button.set_func(lambda : runNearestSim(rainbowCircle))
+    new_button.set_func(lambda : new_handler(screen_elements[0], sim_point_manager))
+    draw_colors_button.set_func(lambda : runNearestSim(rainbowCircle, sim_point_manager, False, interface))
+    draw_group_button.set_func(lambda : runNearestSim(rainbowCircle, sim_point_manager, True, interface))
 
     interface.run()
     print("EXITING")
