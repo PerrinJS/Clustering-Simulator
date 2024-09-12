@@ -4,7 +4,7 @@ import ColorAndPositionConversion as CAPConv
 
 #TODO: convert to be a gui element, so it does not rely on injecting the center and dimentions everywhere
 class RainbowPointPlotter:
-    def __init__(self, rainbow_circle = None, window_size = None, center = None, max_radius = None):
+    def __init__(self, rainbow_circle = None, window_size = None, center = None, max_radius = None, point_tint=None, centroid_tint=None):
         self.attached_window = None
         self.rainbow_circle = None
         self.colors = None
@@ -12,8 +12,8 @@ class RainbowPointPlotter:
         self.draw_points = False
         #Selects weather to draw the dots as thair origenal color or in thair grouped color
         self.draw_grouped = False
-        #stors the color for the group for a given position in the colors array
-        self.grouped_colors = []
+        #Stores the centroids and grouped data in a tuple
+        self.centroids_and_groups = None
         #If we need to create one
         if rainbow_circle is None and not (window_size is None):
             self.rainbow_circle = RainbowCircle(window_size, max_radius, center)
@@ -27,6 +27,11 @@ class RainbowPointPlotter:
         else:
             raise ValueError("Nither rainbow circle nor window size where provided")
 
+        #Thease should be a scale factor for how darkend the point on the rainbow circle should be
+        #i.e. a value between 0 and 1
+        self.point_tint = point_tint
+        self.centroid_tint = centroid_tint
+
     def inc(self, _pos, _interface_manager):
         pass
 
@@ -39,12 +44,23 @@ class RainbowPointPlotter:
     def attach_window(self, surface):
         self.attached_window = surface
 
-    def drawColor(self, color, circle, surface):
+    def drawColor(self, circle, surface, color, cluster_color=None):
         center = (int(circle.DEFF_BUFF_WIDTH/2), int(circle.DEFF_BUFF_WIDTH/2))
 
         sample_pos_center_ref = CAPConv.samplePointFromRGB(color, circle.MAX_RADIUS)
         sample_pos = CAPConv.toRealScreenPos(sample_pos_center_ref, center)
-        self.drawColorAtPos(color, sample_pos, circle, surface)
+
+        tint_value = self.point_tint
+        if cluster_color:
+            if cluster_color == color:
+                tint_value = self.centroid_tint
+            output_color = cluster_color
+        else:
+            output_color = color
+
+        output_color = CAPConv.tint_RGB(output_color, tint_value)
+
+        self.drawColorAtPos(output_color, sample_pos, circle, surface)
 
     def drawColorAtPos(self, color, pos, circle, surface, dot_diamiter = 0):
         if dot_diamiter == 0:
@@ -70,16 +86,14 @@ class RainbowPointPlotter:
         surface.fill(0x00)
 
         if self.draw_points:
-            if self.draw_grouped:
-                if (self.colors is not None) and (len(self.grouped_colors) == 0):
-                    for i, color in enumerate(self.colors):
-                        pos = self.grouped_colors[i]
-                        self.drawColorAtPos(color, pos, circle, surface)
-            else:
+            if self.centroids_and_groups:
+                for i, centroid in enumerate(self.centroids_and_groups[0]):
+                    for color in self.centroids_and_groups[1][i]:
+                        self.drawColor(circle, surface, color, centroid)
+            elif self.colors:
                 #Draw the colors at the points that are given
-                if self.colors is not None:
-                    for color in self.colors:
-                        self.drawColor(color, circle, surface)
+                for color in self.colors:
+                    self.drawColor(circle, surface, color)
 
         if window is None:
             window = self.attached_window
@@ -105,16 +119,19 @@ class RainbowPointPlotter:
         self.grouped_colors = []
 
     def setColors(self, colors):
+        """ This should only be used for non grouped colors """
         self.colors = colors
-        #since we no longer have the same colors we need to recalculate the groups
-        self.grouped_colors = []
+        self.centroids_and_groups = None
 
-    def setGrouped(self, grouped):
-        self.draw_grouped = grouped
+    def setGrouped(self, centroids_and_groups):
+        self.centroids_and_groups = centroids_and_groups
+        self.colors = None
 
-        if self.draw_grouped:
-            if len(self.grouped_colors) == 0:
-                self.groupPoints()
+    def setPointTint(self, point_tint):
+        self.point_tint = point_tint
+
+    def setCentroidTint(self, centroid_tint):
+        self.centroid_tint = centroid_tint
 
     def getDrawPoints(self):
         return self.draw_points

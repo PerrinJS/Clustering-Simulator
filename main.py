@@ -7,7 +7,7 @@ import ColorAndPositionConversion as CAPConv
 from ScreenManagement import InterfaceManager
 from rainbowPointPlotter import RainbowPointPlotter
 from circleLib import find_center
-from clusteringAndClassification import KMeansClusterer
+from clusteringAndClassification import KMeansClustererRGB
 from gui import Button
 
 WINDOW_SIZE = (1000, 600)
@@ -27,8 +27,8 @@ class SimPointManager:
         for color in colors:
             (r,g,b) = CAPConv.convertWebToRGB(color)
             (h,s,_) = colorsys.rgb_to_hsv(r,g,b)
-            #value is .9 to add a little tint to the inside of the circles
-            color = colorsys.hsv_to_rgb(h,s,.9)
+            #fully saturate the colors so the colors match those of the rainbow circle behind it
+            color = colorsys.hsv_to_rgb(h,s,1)
             converted_colors.append(color)
 
         return converted_colors
@@ -37,13 +37,11 @@ class SimPointManager:
         self.points = None
         self.converted_points = None
         self.clustered_points = None
-        self.ungrouped_clusterd = None
 
     def reset(self):
         self.points = None
         self.converted_points = None
         self.clustered_points = None
-        self.ungrouped_clusterd = None
 
     def set_points(self, points):
         self.points = points
@@ -54,35 +52,14 @@ class SimPointManager:
 
     def get_conv_points_clustered(self):
         if self.clustered_points:
-            return self.ungrouped_clusterd
+            return self.clustered_points
 
-        center = (0,0) #Thease data points are just colors and the way they will be used in clustering will not relate to any spesific relative position.
-        hsv_converted_points = [colorsys.rgb_to_hsv(r,g,b) for r,g,b in self.converted_points]
+        clusterer = KMeansClustererRGB(self.converted_points)
+        clusters = clusterer.getClusters()
+        centroids = clusterer.getCentroids()
 
-        clusterer = KMeansClusterer(data=hsv_converted_points)
-        self.clustered_points = clusterer.getClusters(center)
-        ungrouped_clusterd_points_hsv = []
-        for cluster in self.clustered_points:
-            ungrouped_clusterd_points_hsv = ungrouped_clusterd_points_hsv + cluster
-
-        centroids = clusterer.getCentroids(center)
-        #FIXME: this is inificient
-        for i in range(len(ungrouped_clusterd_points_hsv)):
-            h,s = ungrouped_clusterd_points_hsv[i]
-            #Dark point is a centroid, light point is a standard point
-            if ungrouped_clusterd_points_hsv[i] in centroids:
-                ungrouped_clusterd_points_hsv[i] = (h,s,.6)
-            else:
-                ungrouped_clusterd_points_hsv[i] = (h,s,.9)
-
-        ungrouped_clusterd_points = []
-        for i in range(len(ungrouped_clusterd_points_hsv)):
-            h,s,v = ungrouped_clusterd_points_hsv[i]
-            color = colorsys.hsv_to_rgb(h,s,v)
-            ungrouped_clusterd_points.append(color)
-
-        self.ungrouped_clusterd = ungrouped_clusterd_points
-        return ungrouped_clusterd_points
+        self.clustered_points = (centroids, clusters)
+        return self.clustered_points
 
 
 class RandSquareDrawer:
@@ -139,6 +116,8 @@ def runNearestSim(rainbow_point_plotter, sim_point_manager, show_clusters, inter
     #dots to screen
     if not rainbow_point_plotter.getDrawPoints():
         rainbow_point_plotter.toggleDrawPoints()
+        rainbow_point_plotter.setPointTint(.9)
+        rainbow_point_plotter.setCentroidTint(.3)
 
     if rainbow_point_plotter.getColors() == None:
         if sim_point_manager.get_conv_points() is None:
@@ -146,7 +125,7 @@ def runNearestSim(rainbow_point_plotter, sim_point_manager, show_clusters, inter
             sim_point_manager.set_points(randColorsWeb)
 
     if show_clusters:
-        rainbow_point_plotter.setColors(sim_point_manager.get_conv_points_clustered())
+        rainbow_point_plotter.setGrouped(sim_point_manager.get_conv_points_clustered())
     else:
         rainbow_point_plotter.setColors(sim_point_manager.get_conv_points())
 

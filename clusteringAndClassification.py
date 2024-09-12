@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import random
 import math
+import colorsys
 
 import ColorAndPositionConversion as CAPConv
 
@@ -108,16 +109,16 @@ class KMeansClusterer:
         self.clusteredData = None
         self.centroids = None
 
-    def convert_pos_to_hsv(c_list, center=None):
+    def convert_pos_to_hsv(c_list):
         output = []
         for color in c_list:
             output.append(CAPConv.posToPolar(color, None))
         return output
 
-    def convert_clusters_to_hsv(clust_list, center):
+    def convert_clusters_to_hsv(clust_list):
         output = []
         for cluster in clust_list:
-            output.append(KMeansClusterer.convert_pos_to_hsv(cluster, center))
+            output.append(KMeansClusterer.convert_pos_to_hsv(cluster))
         return output
 
     def generateLabels(self):
@@ -155,23 +156,60 @@ class KMeansClusterer:
             #generate the new centroids based off the new classifications
             newCentroids = [_calculateCentroid(cluster) for cluster in clusters]
 
-            converged = newCentroids.sort() == euclidianCentroids.sort()
+            newCentroidsSorted = newCentroids.copy()
+            euclidianCentroidsSorted = euclidianCentroids.copy()
+            converged = newCentroidsSorted.sort() == euclidianCentroidsSorted.sort()
             euclidianCentroids = newCentroids
 
         self.clusteredData = clusters
         self.centroids = euclidianCentroids
 
-    def getClusters(self, center):
+    def getClusters(self):
         if self.clusteredData is None:
             self.generateLabels()
-        return KMeansClusterer.convert_clusters_to_hsv(self.clusteredData, center)
+        return KMeansClusterer.convert_clusters_to_hsv(self.clusteredData)
 
-    def getCentroids(self, center):
+    def getCentroids(self):
         if self.centroids is None:
             self.generateLabels()
-        return KMeansClusterer.convert_pos_to_hsv(self.centroids, center)
+        return KMeansClusterer.convert_pos_to_hsv(self.centroids)
 
 
+class KMeansClustererRGB(KMeansClusterer):
+
+    def convert_hsv_clusters_to_rgb(hsv_clusters):
+        output_list = []
+        for cluster in hsv_clusters:
+            output_list.append(KMeansClustererRGB.convert_hsv_list_to_rgb(cluster))
+
+        return output_list
+
+    def convert_hsv_list_to_rgb(hsv_list):
+        rgb_list = []
+        for element in hsv_list:
+            h,s = element
+            v=1
+            rgb_list.append(colorsys.hsv_to_rgb(h,s,v))
+
+        return rgb_list
+
+    def __init__(self, data):
+        hsv_converted_points = [colorsys.rgb_to_hsv(r,g,b) for r,g,b in data]
+        self.clusteredDataRGB = None
+        self.centroidsRGB = None
+        super().__init__(data=hsv_converted_points)
+
+    def getClusters(self):
+        if self.clusteredDataRGB is None:
+            hsv_clusters = super().getClusters()
+            self.clusteredDataRGB = KMeansClustererRGB.convert_hsv_clusters_to_rgb(hsv_clusters)
+        return self.clusteredDataRGB
+
+    def getCentroids(self):
+        if self.centroidsRGB is None:
+            hsv_centroids = super().getCentroids()
+            self.centroidsRGB = KMeansClustererRGB.convert_hsv_list_to_rgb(hsv_centroids)
+        return self.centroidsRGB
 
 if __name__ == '__main__':
     from ColorAndPositionConversion import posToPolar

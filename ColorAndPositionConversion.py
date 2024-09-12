@@ -103,3 +103,7 @@ def getLocationFromPix(imageSize, location):
     #Again pixel count also starts from zero
     x = location%xLen
     return (x,y)
+
+def tint_RGB(color, tint_factor):
+    r,g,b = color
+    return (r*tint_factor, g*tint_factor, b*tint_factor)
