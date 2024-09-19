@@ -1,10 +1,10 @@
 import pygame
-from circleLib import RainbowCircle
-import ColorAndPositionConversion as CAPConv
+from circle_lib import RainbowCircle
+import color_and_position_conversion as CAPConv
 
-#TODO: convert to be a gui element, so it does not rely on injecting the center and dimentions everywhere
 class RainbowPointPlotter:
-    def __init__(self, rainbow_circle = None, window_size = None, center = None, max_radius = None, point_tint=None, centroid_tint=None):
+    def __init__(self, rainbow_circle = None, window_size = None, center = None,\
+                 max_radius = None, point_tint=None, centroid_tint=None):
         self.attached_window = None
         self.rainbow_circle = None
         self.colors = None
@@ -44,11 +44,11 @@ class RainbowPointPlotter:
     def attach_window(self, surface):
         self.attached_window = surface
 
-    def drawColor(self, circle, surface, color, cluster_color=None):
+    def draw_color(self, circle, surface, color, cluster_color=None):
         center = (int(circle.DEFF_BUFF_WIDTH/2), int(circle.DEFF_BUFF_WIDTH/2))
 
-        sample_pos_center_ref = CAPConv.samplePointFromRGB(color, circle.MAX_RADIUS)
-        sample_pos = CAPConv.toRealScreenPos(sample_pos_center_ref, center)
+        sample_pos_center_ref = CAPConv.sample_point_from_rgb(color, circle.MAX_RADIUS)
+        sample_pos = CAPConv.to_real_screen_pos(sample_pos_center_ref, center)
 
         tint_value = self.point_tint
         if cluster_color:
@@ -58,18 +58,18 @@ class RainbowPointPlotter:
         else:
             output_color = color
 
-        output_color = CAPConv.tint_RGB(output_color, tint_value)
+        output_color = CAPConv.tint_rgb(output_color, tint_value)
 
-        self.drawColorAtPos(output_color, sample_pos, circle, surface)
+        self.draw_color_at_pos(output_color, sample_pos, circle, surface)
 
-    def drawColorAtPos(self, color, pos, circle, surface, dot_diamiter = 0):
+    def draw_color_at_pos(self, color, pos, circle, surface, dot_diamiter = 0):
         if dot_diamiter == 0:
             dot_diamiter = circle.DEFF_BUFF_WIDTH*(1/150)
 
         pygame.draw.circle(surface, 0xff000000,\
                            pos,\
                            dot_diamiter+1)
-        pygame.draw.circle(surface, CAPConv.convertToPygameColor(color),\
+        pygame.draw.circle(surface, CAPConv.convert_to_pygame_color(color),\
                            pos,\
                            dot_diamiter)
 
@@ -82,18 +82,18 @@ class RainbowPointPlotter:
 
         circle = self.rainbow_circle
         #TODO: make this part of the class
-        surface = pygame.Surface(circle.blankCircle.get_size()).convert_alpha()
+        surface = pygame.Surface(circle.blank_circle.get_size()).convert_alpha()
         surface.fill(0x00)
 
         if self.draw_points:
             if self.centroids_and_groups:
                 for i, centroid in enumerate(self.centroids_and_groups[0]):
                     for color in self.centroids_and_groups[1][i]:
-                        self.drawColor(circle, surface, color, centroid)
+                        self.draw_color(circle, surface, color, centroid)
             elif self.colors:
                 #Draw the colors at the points that are given
                 for color in self.colors:
-                    self.drawColor(circle, surface, color)
+                    self.draw_color(circle, surface, color)
 
         if window is None:
             window = self.attached_window
@@ -102,13 +102,13 @@ class RainbowPointPlotter:
 
         if window:
             #Make sure we draw in the same location as the rainbow circle is in
-            window.blit(surface, (circle.CENTER[0]-circle.DEFF_BUFF_WIDTH/2,
+            window.blit(surface, (circle.CENTER[0]-circle.DEFF_BUFF_WIDTH/2,\
                                         circle.CENTER[1]-circle.DEFF_BUFF_WIDTH/2))
 
-    def updateDimens(self, window_size=None, center=None, max_radius=None):
-        self.rainbow_circle.updateDimens(window_size, center, max_radius)
+    def update_dimens(self, window_size=None, center=None, max_radius=None):
+        self.rainbow_circle.update_dimens(window_size, center, max_radius)
 
-    def toggleDrawPoints(self):
+    def toggle_draw_points(self):
         #invert the current state
         self.draw_points = False if self.draw_points else True
 
@@ -116,28 +116,27 @@ class RainbowPointPlotter:
         self.colors = None
         self.draw_points = False
         self.draw_grouped = False
-        self.grouped_colors = []
 
-    def setColors(self, colors):
+    def set_colors(self, colors):
         """ This should only be used for non grouped colors """
         self.colors = colors
         self.centroids_and_groups = None
 
-    def setGrouped(self, centroids_and_groups):
+    def set_grouped(self, centroids_and_groups):
         self.centroids_and_groups = centroids_and_groups
         self.colors = None
 
-    def setPointTint(self, point_tint):
+    def set_point_tint(self, point_tint):
         self.point_tint = point_tint
 
-    def setCentroidTint(self, centroid_tint):
+    def set_centroid_tint(self, centroid_tint):
         self.centroid_tint = centroid_tint
 
-    def getDrawPoints(self):
+    def get_draw_points(self):
         return self.draw_points
 
-    def getColors(self):
+    def get_colors(self):
         return self.colors
 
-    def getCircleCenter(self):
+    def get_circle_center(self):
         return self.rainbow_circle.CENTER

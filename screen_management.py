@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import pygame
-import math
 from time import sleep
+import pygame
 
 class InterfaceManager:
-    def __init__(self, event_table, screen_elements, window_size, window_name = "Nearest Neighbour Simulator"):
+    def __init__(self, event_table, screen_elements, window_size,\
+                 window_name = "Nearest Neighbour Simulator"):
         self.window_name = window_name
         self.main_window = None
         self.event_table = event_table
@@ -47,7 +47,7 @@ class InterfaceManager:
         self.clear_background()
 
         #main loop flags
-        self.shouldExit = False
+        self.should_exit = False
 
         if self.preloop_init_hook:
             self.preloop_init_hook(self.main_window, self)
@@ -76,7 +76,7 @@ class InterfaceManager:
 
 
 if __name__ == '__main__':
-    def quit_func(event, interface_manager):
+    def quit_func(_event, interface_manager):
         pygame.quit()
         interface_manager.exit_func()
 

@@ -1,12 +1,11 @@
 #!/usr/bin/python
-import pygame
 import math
-import ColorAndPositionConversion as CAPConv
+import pygame
+import color_and_position_conversion as CAPConv
 
-#TODO: the purpose of drawing it into a buffer so we dont have to re-calc every time
-#       Maybe on init accept a start buffer size so we always scale down.
-#TODO: convert to be a gui element, so it does not rely on injecting the center and dimentions everywhere
-
+#The purpose of drawing it into a buffer so we dont have to re-calc every time
+#       on init accept a start buffer size so we always scale down.
+#
 def find_center(window_size):
     return (math.floor(window_size[0]/2), math.floor(window_size[1]/2))
 
@@ -36,15 +35,15 @@ class RainbowCircle:
         self.BUFF_WIDTH = find_buff_width(window_size)
         self.DEFF_BUFF_WIDTH = self.BUFF_WIDTH
 
-        self.scaleBuff = False
+        self.scale_buff = False
         self.attached_window = None
-        self.init = False
+        self.blank_circle = None
 
     def attach_window(self, surface):
         self.attached_window = surface
 
     #TODO: Try update this to pull data from the surface its self
-    def updateDimens(self, window_size=None, center=None, max_radius=None):
+    def update_dimens(self, window_size=None, center=None, max_radius=None):
         self.WINDOW_SIZE = []
         if window_size is None:
             if self.attach_window is None:
@@ -68,32 +67,34 @@ class RainbowCircle:
         if self.BUFF_WIDTH <= potential_buff_width:
             self.BUFF_WIDTH = potential_buff_width
             self.DEFF_BUFF_WIDTH = self.BUFF_WIDTH
-            self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
-            self.blankCircle.fill(0x00)
-            self.renderRainbowCircle()
-            self.scaleBuff = False
+            self.blank_circle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
+            self.blank_circle.fill(0x00)
+            self.render_rainbow_circle()
+            self.scale_buff = False
         else:
             self.DEFF_BUFF_WIDTH = potential_buff_width
-            self.scaleBuff = True
+            self.scale_buff = True
 
-    def renderRainbowCircle(self):
+    def render_rainbow_circle(self):
         for i in range(0,(self.BUFF_WIDTH**2)):
-            pos = CAPConv.getLocationFromPix((self.BUFF_WIDTH, self.BUFF_WIDTH), i)
-            if CAPConv.pointInCircle((self.BUFF_WIDTH/2, self.BUFF_WIDTH/2), self.BUFF_WIDTH/2, pos):
-                polarPos = CAPConv.posToPolar(pos, (self.BUFF_WIDTH/2, self.BUFF_WIDTH/2))
-                self.blankCircle.set_at(pos, CAPConv.sampleHexColor(self.MAX_RADIUS, polarPos[1], polarPos[0]))
+            pos = CAPConv.get_location_from_pix((self.BUFF_WIDTH, self.BUFF_WIDTH), i)
+            center = (self.BUFF_WIDTH/2, self.BUFF_WIDTH/2)
+            if CAPConv.point_in_circle(center, self.BUFF_WIDTH/2, pos):
+                polar_pos = CAPConv.pos_to_polar(pos, center)
+                self.blank_circle.set_at(pos,\
+                            CAPConv.sample_hex_color(self.MAX_RADIUS, polar_pos[1], polar_pos[0]))
 
     def draw(self, window=None):
-        if not self.init:
-            self.blankCircle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
-            self.blankCircle.fill(0x00)
-            self.renderRainbowCircle()
-            self.init = True
+        if not self.blank_circle:
+            self.blank_circle = pygame.Surface((self.BUFF_WIDTH, self.BUFF_WIDTH)).convert_alpha()
+            self.blank_circle.fill(0x00)
+            self.render_rainbow_circle()
 
         if self.DEFF_BUFF_WIDTH <= self.BUFF_WIDTH:
-            outputCircle = pygame.transform.scale(self.blankCircle, (self.DEFF_BUFF_WIDTH,self.DEFF_BUFF_WIDTH))
+            def_buff_dimentions = (self.DEFF_BUFF_WIDTH,self.DEFF_BUFF_WIDTH)
+            output_circle = pygame.transform.scale(self.blank_circle, def_buff_dimentions)
         else:
-            outputCircle = self.blankCircle
+            output_circle = self.blank_circle
 
         if window is None:
             #If it's still None then we skip in the next step
@@ -102,7 +103,7 @@ class RainbowCircle:
             self.attach_window(window)
 
         if window:
-            window.blit(outputCircle, (self.CENTER[0]-self.DEFF_BUFF_WIDTH/2,
+            window.blit(output_circle, (self.CENTER[0]-self.DEFF_BUFF_WIDTH/2,
                                         self.CENTER[1]-self.DEFF_BUFF_WIDTH/2))
 
 
@@ -117,48 +118,47 @@ class RainbowCircle:
 #working and useful
 if __name__ == '__main__':
     import sys
-    import math
     from functools import partial
 
-    def baseTest(func, inp, expOut):
+    def base_test(func, inp, exp_out):
         """Note this test can only be used where the == comparator is valid"""
-        assert func(*inp) == expOut, f'ERROR: {func.__name__} with input {inp} had value of {func(*inp)} expected: {expOut}'
-        print(f'PASS {func.__name__} input was: {inp} and output: {expOut}')
+        assert func(*inp) == exp_out, f'ERROR: {func.__name__} with input {inp} had value of {func(*inp)} expected: {exp_out}'
+        print(f'PASS {func.__name__} input was: {inp} and output: {exp_out}')
 
-    def testColorConversion():
+    def test_color_conversion():
         print("TESTING COLOR CONVERSIONS:")
         #Testing convertToPygameColor
-        toPyColorTest = partial(baseTest, func=CAPConv.convertToPygameColor)
-        toPyColorTest(inp = [(1,1,1)], expOut = (255,255,255))
-        toPyColorTest(inp = [(0,0,0)], expOut = (0,0,0))
-        toPyColorTest(inp = [(0.5,0.5,0.5)], expOut = (255/2,255/2,255/2))
+        to_py_color_test = partial(base_test, func=CAPConv.convert_to_pygame_color)
+        to_py_color_test(inp = [(1,1,1)], exp_out = (255,255,255))
+        to_py_color_test(inp = [(0,0,0)], exp_out = (0,0,0))
+        to_py_color_test(inp = [(0.5,0.5,0.5)], exp_out = (255/2,255/2,255/2))
         #to test the order
-        toPyColorTest(inp = [(1,0,0.5)], expOut = (255,0,255/2))
+        to_py_color_test(inp = [(1,0,0.5)], exp_out = (255,0,255/2))
 
         #Testing convertFromPygameColor
-        fromPyColorTest = partial(baseTest, func=CAPConv.convertFromPygameColor)
-        fromPyColorTest(inp = [(0,0,0)], expOut = (0,0,0))
-        fromPyColorTest(inp = [(255,255,255)], expOut = (1.0,1.0,1.0))
-        fromPyColorTest(inp = [(255/2,255/2,255/2)], expOut = (0.5,0.5,0.5))
+        from_py_color_test = partial(base_test, func=CAPConv.convert_from_pygame_color)
+        from_py_color_test(inp = [(0,0,0)], exp_out = (0,0,0))
+        from_py_color_test(inp = [(255,255,255)], exp_out = (1.0,1.0,1.0))
+        from_py_color_test(inp = [(255/2,255/2,255/2)], exp_out = (0.5,0.5,0.5))
         #to test the order
-        fromPyColorTest(inp = [(255,0,255/2)], expOut = (1,0,0.5))
+        from_py_color_test(inp = [(255,0,255/2)], exp_out = (1,0,0.5))
 
-    def testWindowMathFunctions():
+    def test_window_math_functions():
         print("TESTING WINDOW MATH FUNCTIONS:")
         #Testing normalizePoint
-        normalizePointTest = partial(baseTest, func=CAPConv.normalizePoint)
-        normalizePointTest(inp = [(0,0),(0,0)], expOut = (0,0))
-        normalizePointTest(inp = [(800,600),(0,0)], expOut = (800,600))
-        normalizePointTest(inp = [(1600,1200),(800,600)], expOut = (800,600))
+        normalize_point_test = partial(base_test, func=CAPConv.normalize_point)
+        normalize_point_test(inp = [(0,0),(0,0)], exp_out = (0,0))
+        normalize_point_test(inp = [(800,600),(0,0)], exp_out = (800,600))
+        normalize_point_test(inp = [(1600,1200),(800,600)], exp_out = (800,600))
         #Testing posToPolar
-        posToPolarTest = partial(baseTest, func=CAPConv.posToPolar)
-        posToPolarTest(inp = [(0,0), (0,0)], expOut = (0,0))
-        posToPolarTest(inp = [(12, 5), (0,0)], expOut = (13, math.atan(5/12)))
+        pos_to_polar_test = partial(base_test, func=CAPConv.pos_to_polar)
+        pos_to_polar_test(inp = [(0,0), (0,0)], exp_out = (0,0))
+        pos_to_polar_test(inp = [(12, 5), (0,0)], exp_out = (13, math.atan(5/12)))
 
     print("Running Circle Lib Diag & Test:")
     try:
-        testColorConversion()
-        testWindowMathFunctions()
+        test_color_conversion()
+        test_window_math_functions()
     except AssertionError as error:
         print(error, file=sys.stderr)
         print("EXITING EARLY", file=sys.stderr)

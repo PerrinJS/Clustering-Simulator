@@ -1,13 +1,12 @@
 #!/usr/bin/python
 import math
 import colorsys
-import pygame
 
-def convertWebToRGB(color):
+def convert_web_to_rgb(color):
     color_str = hex(color)
     #strip off the 0x
     color_str = color_str[2:]
-    for i in range(6-len(color_str)):
+    for _ in range(6-len(color_str)):
         color_str = '0' + color_str
     red_str = color_str[:2]
     green_str = color_str[2:4]
@@ -20,10 +19,16 @@ def convertWebToRGB(color):
     ret = (red_int/255, green_int/255, blue_int/255)
     return ret
 
-def convertToPygameColor(color):
+def convert_to_pygame_color(color):
     red = 255 * color[0]
     green = 255 * color[1]
     blue = 255 * color[2]
+    return (red, green, blue)
+
+def convert_from_pygame_color(color):
+    red = color[0]/255
+    green = color[1]/255
+    blue = color[2]/255
     return (red, green, blue)
 
 def hsv_to_rgb(max_radius, color):
@@ -31,43 +36,36 @@ def hsv_to_rgb(max_radius, color):
     sx = abs(s/max_radius)
     return colorsys.hsv_to_rgb(h/(2*math.pi), sx, v/100)
 
-
-def convertFromPygameColor(color):
-    red = color[0]/255
-    green = color[1]/255
-    blue = color[2]/255
-    return (red, green, blue)
-
-def sampleHexColor(max_radius, h, s, v = 100):
+def sample_hex_color(max_radius, h, s, v = 100):
     color = hsv_to_rgb(max_radius, (h,s,v))
-    return convertToPygameColor(color)
+    return convert_to_pygame_color(color)
 
-def samplePointFromRGB(rgb_color, max_radius):
+def sample_point_from_rgb(rgb_color, max_radius):
     r,g,b = rgb_color
-    h,s,v = colorsys.rgb_to_hsv(r,g,b)
+    h,s,_ = colorsys.rgb_to_hsv(r,g,b)
     h = h*(2*math.pi)
     s = s*max_radius
-    return polarToPos((s, h))
+    return polar_to_pos((s, h))
 
-def normalizePoint(point, center):
+def normalize_point(point, center):
     """
     Make the corrdinate system based off where the center of the window rather
     than the top left corner
     """
     (x,y) = point
-    (cX,cY) = center
-    return (x-cX, y-cY)
+    (cx,cy) = center
+    return (x-cx, y-cy)
 
-def toRealScreenPos(point, center):
+def to_real_screen_pos(point, center):
     """ Reverse normalizePoint """
     x, y = point
-    cX, cY = center
-    return (x+cX, y+cY)
+    cx, cy = center
+    return (x+cx, y+cy)
 
-def posToPolar(point, center=None):
+def pos_to_polar(point, center=None):
     """converts cartesian coordinates to polar coordinates using the center as refference"""
     if center is not None:
-        (x,y) = normalizePoint(point, center)
+        (x,y) = normalize_point(point, center)
     else:
         (x,y) = point
     r = math.sqrt(abs(x*x + y*y))
@@ -87,23 +85,23 @@ def posToPolar(point, center=None):
 
     return(r,theta)
 
-def polarToPos(polar):
+def polar_to_pos(polar):
     x = polar[0] * math.cos(polar[1])
     y = polar[0] * math.sin(polar[1])
     return (x, y)
 
-def pointInCircle(center, radius, point):
-    polarPoint = posToPolar(point, center)
-    return polarPoint[0] < radius
+def point_in_circle(center, radius, point):
+    polar_point = pos_to_polar(point, center)
+    return polar_point[0] < radius
 
-def getLocationFromPix(imageSize, location):
-    (xLen, yLen) = imageSize
+def get_location_from_pix(image_size, location):
+    (x_len, _y_len) = image_size
     #by using floor, lines start from zero
-    y = math.floor(location/xLen)
+    y = math.floor(location/x_len)
     #Again pixel count also starts from zero
-    x = location%xLen
+    x = location%x_len
     return (x,y)
 
-def tint_RGB(color, tint_factor):
+def tint_rgb(color, tint_factor):
     r,g,b = color
     return (r*tint_factor, g*tint_factor, b*tint_factor)

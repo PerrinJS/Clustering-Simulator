@@ -1,13 +1,13 @@
 #!/usr/bin/python
 import pygame
 
-#FIXME: covert to take a window to draw to, make it attachable like with rainbow circle. There are some functions that reqire window and we have no method of injecting a window to be used internally.
-
 class Button:
-    def __init__(self, surface=None, shape_pos=(0,0,0,0), relative_size=False, label="", fit_text=True, colors=((0,255,0), (55,69,84), (00,00,00))):
+    def __init__(self, _surface=None, shape_pos=(0,0,0,0), relative_size=False,\
+                 label="", fit_text=True, colors=((0,255,0), (55,69,84), (00,00,00))):
         self.surface = None
         self.relative_size = relative_size
-        #We keep the orrigenal for when we input relative sizeing values such that we can then resize based on new screen sizes
+        #We keep the orrigenal for when we input relative sizeing values such
+        #that we can then resize based on new screen sizes
         self.inp_shape_pos = shape_pos
         self.shape_pos = pygame.Rect(shape_pos)
         self.label = label
@@ -25,17 +25,17 @@ class Button:
         ret = pygame.Rect(self.shape_pos)
         if self.relative_size:
             x,y,w,h = self.inp_shape_pos
-            ret = pygame.Rect(int(x*window_size[0]), int(y*window_size[1]), int(w*window_size[0]), int(h*window_size[1]))
+            ret = pygame.Rect(int(x*window_size[0]), int(y*window_size[1]),\
+                              int(w*window_size[0]), int(h*window_size[1]))
         return ret
 
     def attach_window(self, surface):
         self.surface = surface
 
-    def updateDimens(self, _window_size=None, _center=None, _max_radius=None):
+    def update_dimens(self, _window_size=None, _center=None, _max_radius=None):
         pass
 
     def draw(self, window=None):
-        #FIXME: this is just for testing
         if self.font is None:
             self.font = pygame.font.Font('Caladea-Regular.ttf', 40)
 
@@ -44,13 +44,17 @@ class Button:
                 raise ValueError("No surface was given to draw to")
             window = self.surface
 
-        if self.is_button_down == True:
-            pygame.draw.rect(window, pygame.Color(self.colors[2]), self._adjust_for_relative_sizing(window.get_size()))
+        if self.is_button_down:
+            pygame.draw.rect(window, pygame.Color(self.colors[2]),\
+                             self._adjust_for_relative_sizing(window.get_size()))
         else:
             button_box_color = self.colors[1]
             if self.is_hover:
-                button_box_color = (min(button_box_color[0] * 2, 255),min(button_box_color[1] * 2, 255), min(button_box_color[2] * 2, 255))
-            pygame.draw.rect(window, button_box_color, self._adjust_for_relative_sizing(window.get_size()))
+                button_box_color = (min(button_box_color[0] * 2, 255),\
+                                    min(button_box_color[1] * 2, 255),\
+                                    min(button_box_color[2] * 2, 255))
+            pygame.draw.rect(window, button_box_color,\
+                             self._adjust_for_relative_sizing(window.get_size()))
         #TODO: or we changed the label ---v
         if self.label_surface is None:
             #True = anti aliasing on
@@ -69,18 +73,21 @@ class Button:
         #button larger then txt so scale up
 
         if butt_size_vs_txt < 0:
-            #FIXME: for now we are just scaling to fit text in button
+            #TODO: for now we are just scaling to fit text in button
             fixed_width_height_factor = (1 - ((text_rect.width - real_shape_pos.width)/text_rect.width)) * self.BUTTON_BORDER
             text_rect.width = int(text_rect.width * fixed_width_height_factor)
             text_rect.height = int(text_rect.height * fixed_width_height_factor)
-            output_label = pygame.transform.scale(self.label_surface, (text_rect.width, text_rect.height))
-        #If the size of the box and the size of the txt are equal we still need to sclae for the BUTTON_BORDER
+            output_label = pygame.transform.scale(self.label_surface,\
+                                                  (text_rect.width, text_rect.height))
+        #If the size of the box and the size of the txt are equal we still need
+        #to scale for the BUTTON_BORDER
         else:
-            #FIXME: for now we are just scaling to fit text in button
+            #TODO: for now we are just scaling to fit text in button
             fixed_width_height_factor = (1 + ((real_shape_pos.width - text_rect.width)/text_rect.width)) - self.BUTTON_BORDER
             text_rect.width = int(text_rect.width * fixed_width_height_factor)
             text_rect.height = int(text_rect.height * fixed_width_height_factor)
-            output_label = pygame.transform.scale(self.label_surface, (text_rect.width, text_rect.height))
+            output_label = pygame.transform.scale(self.label_surface,\
+                                                  (text_rect.width, text_rect.height))
 
         text_rect.center = real_shape_pos.center
         window.blit(output_label, text_rect)
@@ -106,8 +113,8 @@ class Button:
         if self.relative_size:
             real_shape_pos = self._adjust_for_relative_sizing(window.get_size())
             return real_shape_pos.contains(pos_rect)
-        else:
-            return self.shape_pos.contains(pos_rect)
+
+        return self.shape_pos.contains(pos_rect)
 
     def on_mouse_down(self, window):
         if self.is_pos_inside(pygame.mouse.get_pos(), window):
@@ -132,13 +139,14 @@ class Button:
         self.func = func
 
     def set_pos(self, new_pos):
-        #FIXME: get this to work with relative sizing
+        #TODO: get this to work with relative sizing
         #new_pos will be the new top left so we need to convert
-        center_offset = (self.shape_pos.center[0]-self.shape_pos.left, self.shape_pos.center[1]-self.shape_pos.top)
+        center_offset = (self.shape_pos.center[0]-self.shape_pos.left,\
+                         self.shape_pos.center[1]-self.shape_pos.top)
         self.shape_pos.center = (new_pos[0]+center_offset[0], new_pos[1]+center_offset[1])
 
     def set_size(self, new_size):
-        #FIXME: get this to work with relative sizing
+        #TODO: get this to work with relative sizing
         self.shape_pos.width = new_size[0]
         self.shape_pos.height = new_size[1]
 
@@ -146,7 +154,6 @@ class Button:
 
 
 if __name__ == '__main__':
-    import random
     import math
     from time import sleep
 
@@ -154,15 +161,13 @@ if __name__ == '__main__':
     BACKGROUND_COLOR = 0x000000
     CENTER = (math.floor(WINDOW_SIZE[0]/2), math.floor(WINDOW_SIZE[1]/2))
 
-    def clearBackground(window):
+    def clear_background(_window):
         main_window.fill(BACKGROUND_COLOR)
         pygame.display.flip()
 
     def resize(elements = None, resize_callback = None):
-        findCenter = lambda x : (math.floor(x[0]/2), math.floor(x[1]/2))
         WINDOW_SIZE = main_window.get_size()
-        CENTER = findCenter(WINDOW_SIZE)
-        clearBackground(main_window)
+        clear_background(main_window)
         if (elements is not None) and (resize_callback is not None):
             resize_callback(elements, WINDOW_SIZE)
 
@@ -171,10 +176,10 @@ if __name__ == '__main__':
     main_window = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
     #set window title
     pygame.display.set_caption("Nearest Neighbour Simulator")
-    clearBackground(main_window)
+    clear_background(main_window)
 
     #main loop
-    shouldExit = False
+    should_exit = False
     resize()
     updated = True
     buff_size = 0.008
@@ -194,7 +199,7 @@ if __name__ == '__main__':
 
     screen_elements = [butt, butt2, butt3, butt4]
 
-    while shouldExit is False:
+    while should_exit is False:
         for element in screen_elements:
             if element.inc(pygame.mouse.get_pos()):
                 updated = True
@@ -202,7 +207,7 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                shouldExit = True
+                should_exit = True
                 break
             elif event.type == pygame.VIDEORESIZE:
                 resize()
@@ -211,7 +216,7 @@ if __name__ == '__main__':
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
                     pygame.quit()
-                    shouldExit = True
+                    should_exit = True
                     break
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 for element in screen_elements:
@@ -222,7 +227,7 @@ if __name__ == '__main__':
                     element.on_mouse_up()
                 updated = True
 
-        if (not shouldExit) and updated:
+        if (not should_exit) and updated:
             for element in screen_elements:
                 element.draw()
             pygame.display.flip()

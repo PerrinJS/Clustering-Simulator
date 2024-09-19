@@ -1,31 +1,30 @@
 #!/usr/bin/python
-import pygame
 import random
 import math
 import colorsys
-import ColorAndPositionConversion as CAPConv
-from ScreenManagement import InterfaceManager
-from rainbowPointPlotter import RainbowPointPlotter
-from circleLib import find_center
-from clusteringAndClassification import KMeansClustererRGB
+import pygame
+import color_and_position_conversion as CAPConv
+from screen_management import InterfaceManager
+from rainbow_point_plotter import RainbowPointPlotter
+from clustering_and_classification import KMeansClustererRGB
 from gui import Button
 
 WINDOW_SIZE = (1000, 600)
 
-def genRandColor():
+def gen_rand_color():
     return random.randrange(0x000000, 0xffffff)
 
-def genRandColors(quantity):
+def gen_rand_colors(quantity):
     colors = [None] * quantity
     for i in range(0,quantity):
-        colors[i] = genRandColor()
+        colors[i] = gen_rand_color()
     return colors
 
 class SimPointManager:
     def convert_colors(colors):
         converted_colors = []
         for color in colors:
-            (r,g,b) = CAPConv.convertWebToRGB(color)
+            (r,g,b) = CAPConv.convert_web_to_rgb(color)
             (h,s,_) = colorsys.rgb_to_hsv(r,g,b)
             #fully saturate the colors so the colors match those of the rainbow circle behind it
             color = colorsys.hsv_to_rgb(h,s,1)
@@ -55,12 +54,11 @@ class SimPointManager:
             return self.clustered_points
 
         clusterer = KMeansClustererRGB(self.converted_points)
-        clusters = clusterer.getClusters()
-        centroids = clusterer.getCentroids()
+        clusters = clusterer.get_clusters()
+        centroids = clusterer.get_centroids()
 
         self.clustered_points = (centroids, clusters)
         return self.clustered_points
-
 
 class RandSquareDrawer:
     def __init__(self):
@@ -89,17 +87,24 @@ class RandSquareDrawer:
     def attach_window(self, surface):
         self.attached_window = surface
 
-    def _genRandSquare():
-        topLeft = (random.randrange(0, WINDOW_SIZE[0]), random.randrange(0, WINDOW_SIZE[1]))
-        sideLength = random.randrange(0, math.floor(WINDOW_SIZE[0]/2))
-        return pygame.Rect(topLeft[0], topLeft[1], sideLength, sideLength)
+    def _gen_rand_square(self):
+        top_left = None
+        curr_win_size = None
+        if self.attached_window:
+            curr_win_size = self.attached_window
+        else:
+            curr_win_size = WINDOW_SIZE
 
-    def _drawRandSquare(self, window):
-        randSquare = RandSquareDrawer._genRandSquare()
-        randColor = genRandColor()
-        pygame.draw.rect(window, randColor, randSquare)
+        top_left = (random.randrange(0, curr_win_size[0]), random.randrange(0, curr_win_size[1]))
+        side_length = random.randrange(0, math.floor(curr_win_size[0]/2))
+        return pygame.Rect(top_left[0], top_left[1], side_length, side_length)
 
-    def updateDimens(self, _window_size=None, _center=None, _max_radius=None):
+    def _draw_rand_square(self, window):
+        rand_square = self._gen_rand_square()
+        rand_color = gen_rand_color()
+        pygame.draw.rect(window, rand_color, rand_square)
+
+    def update_dimens(self, _window_size=None, _center=None, _max_radius=None):
         pass
 
     def draw(self, window=None):
@@ -108,48 +113,46 @@ class RandSquareDrawer:
                 if self.attached_window is None:
                     raise ValueError("No attached surface")
                 window = self.attached_window
-            self._drawRandSquare(window)
+            self._draw_rand_square(window)
 
-def runNearestSim(rainbow_point_plotter, sim_point_manager, show_clusters, interface_manager):
+def run_nearest_sim(rainbow_point_plotter, _sim_point_manager, show_clusters, _interface_manager):
     """ This should trigger the plotter to run the simulation """
-    #FIXME: this is just for testing currently we just print randomly colored
-    #dots to screen
-    if not rainbow_point_plotter.getDrawPoints():
-        rainbow_point_plotter.toggleDrawPoints()
-        rainbow_point_plotter.setPointTint(.9)
-        rainbow_point_plotter.setCentroidTint(.3)
+    if not rainbow_point_plotter.get_draw_points():
+        rainbow_point_plotter.toggle_draw_points()
+        rainbow_point_plotter.set_point_tint(.9)
+        rainbow_point_plotter.set_centroid_tint(.3)
 
-    if rainbow_point_plotter.getColors() == None:
+    if rainbow_point_plotter.get_colors() is None:
         if sim_point_manager.get_conv_points() is None:
-            randColorsWeb = genRandColors(100)
-            sim_point_manager.set_points(randColorsWeb)
+            rand_colors_web = gen_rand_colors(100)
+            sim_point_manager.set_points(rand_colors_web)
 
     if show_clusters:
-        rainbow_point_plotter.setGrouped(sim_point_manager.get_conv_points_clustered())
+        rainbow_point_plotter.set_grouped(sim_point_manager.get_conv_points_clustered())
     else:
-        rainbow_point_plotter.setColors(sim_point_manager.get_conv_points())
+        rainbow_point_plotter.set_colors(sim_point_manager.get_conv_points())
 
 
 def new_handler(rainbow_point_plotter, sim_point_manager):
     rainbow_point_plotter.reset()
     sim_point_manager.reset()
 
-def quit_func(event=None, screen_elements=None, interface_manager=None):
+def quit_func(_event=None, _screen_elements=None, interface_manager=None):
     if interface_manager is None:
         raise ValueError("No interface_manager given")
     interface_manager.exit_func()
 
-def resize_func(event, screen_elements, interface_manager):
+def resize_func(_event, screen_elements, interface_manager):
     for element in screen_elements:
-        element.updateDimens()
+        element.update_dimens()
     interface_manager.set_updated()
     interface_manager.clear_background()
 
-def clear_func(event, screen_elements, interface_manager):
+def clear_func(_event, _screen_elements, interface_manager):
     interface_manager.set_updated()
     interface_manager.clear_background()
 
-def toggle_rand_func(event, screen_elements, interface_manager):
+def toggle_rand_func(_event, screen_elements, _interface_manager):
     screen_elements[1].toggle()
 
 def key_down(event, screen_elements, interface_manager):
@@ -170,7 +173,7 @@ def on_mouse_up(_event, screen_elements, interface_manager):
         element.on_mouse_up(interface_manager.get_main_window())
     interface_manager.set_updated()
 
-def draw_func(screen_elements, main_window, interface_manager):
+def draw_func(screen_elements, main_window, _interface_manager):
     #we always want the buttons on top
     for element in screen_elements:
         element.draw(main_window)
@@ -199,8 +202,10 @@ if __name__ == '__main__':
     interface.set_draw_hook(draw_func)
     exit_button.set_func(lambda : quit_func(interface_manager=interface))
     new_button.set_func(lambda : new_handler(screen_elements[0], sim_point_manager))
-    draw_colors_button.set_func(lambda : runNearestSim(rainbowCircle, sim_point_manager, False, interface))
-    draw_group_button.set_func(lambda : runNearestSim(rainbowCircle, sim_point_manager, True, interface))
+    draw_colors_button.set_func(\
+                lambda : run_nearest_sim(rainbowCircle, sim_point_manager, False, interface))
+    draw_group_button.set_func(\
+                lambda : run_nearest_sim(rainbowCircle, sim_point_manager, True, interface))
 
     interface.run()
     print("EXITING")
